@@ -85,7 +85,7 @@ td{padding:6px 0}
 .seg button[aria-pressed=true]{background:#fff;color:var(--deep)}
 .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:12px 22px;font-size:13px;color:var(--mute)}.foot a{color:var(--navy);font-weight:700}
 .who{margin-left:auto;font-size:13px;color:#a9bfe0}.who button{font:inherit;color:#fff;background:none;border:1px solid #4d668c;border-radius:6px;padding:2px 8px;cursor:pointer}
-.login form{display:grid;gap:12px;max-width:380px;margin:10px auto 20px}.login label{display:grid;gap:4px;font-weight:700}.err{color:#a51f1f;font-weight:700;margin:4px 0}
+.login form{display:grid;gap:12px;max-width:380px;margin:10px auto 20px}.login label{display:grid;gap:4px;font-weight:700}.login label.chk{display:flex;align-items:center;gap:8px;font-weight:500;min-height:44px;cursor:pointer}.login .chk input{width:22px;height:22px;min-height:0;accent-color:#0b2a5b}.err{color:#a51f1f;font-weight:700;margin:4px 0}
 .list tr{cursor:pointer}.list tbody tr:hover{background:var(--soft)}#q{margin-bottom:10px;max-width:420px}
 .sendf{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) auto;gap:8px;margin-bottom:12px}@media(max-width:700px){.sendf{grid-template-columns:1fr}}
 .donep{text-align:center;display:grid;gap:10px;justify-items:center;padding:30px 22px}.donep .big{font-size:26px;font-weight:900;color:var(--ok);margin:0}.donep input{max-width:560px;font-size:13px}.btn.ghost2{background:none;border:1px solid var(--line);color:var(--navy)}
@@ -364,12 +364,14 @@ function adminTools() {
   ${SENDS.length ? `<table class="ptab"><tbody>${SENDS.map(s => `<tr><td>${esc(fdt(s.sent_at))}</td><td><b>${esc(s.buyer_name||'—')}</b></td><td>${s.manager?T('담당','by')+' '+esc(s.manager):''}</td></tr>`).join('')}</tbody></table>` : `<p class="mute">${T('아직 보낸 기록이 없습니다','Not sent to any buyer yet')}</p>`}
   ${META ? `<p class="mute">${T('제출','Submitted')}: ${esc(fdt(META.created_at))}</p>` : ''}</section>`;
 }
+const hasPref = () => { try { return localStorage.getItem('am_sid') !== null; } catch (e) { return false; } };
 const lastId = () => { try { return localStorage.getItem('am_id') || ''; } catch (e) { return ''; } };
 function loginPage() {
  return band() + `<section class="sec login"><h2>${T('로그인','Log in')}</h2>
   <form id="lf"><label>ID<input id="lid" name="username" autocomplete="username" autocapitalize="off" placeholder="admin / inspector" value="${esc(lastId())}"></label>
   <label>${T('비밀번호','Password')}<input id="lpw" name="password" type="password" autocomplete="current-password"></label>
-  ${ERR ? `<p class="err">${esc(ERR)}</p>` : ''}<button class="btn main" ${BUSY?'disabled':''}>${BUSY?'…':T('로그인','Log in')}</button><p class="mute">${T('로그아웃하기 전까지 이 기기에서 로그인이 유지됩니다.','You stay logged in on this device until you log out.')}</p></form></section>` + foot;
+  ${ERR ? `<p class="err">${esc(ERR)}</p>` : ''}<label class="chk"><input type="checkbox" id="sid" ${lastId()||!hasPref()?'checked':''}> ${T('아이디 저장','Save ID')}</label>
+  <button class="btn main" ${BUSY?'disabled':''}>${BUSY?'…':T('로그인','Log in')}</button><p class="mute">${T('로그아웃하기 전까지 이 기기에서 로그인이 유지됩니다.','You stay logged in on this device until you log out.')}</p></form></section>` + foot;
 }
 function listPage() {
  return band() + `<section class="sec"><h2>${T('점검 보고서','Inspection reports')} <small>${T('총','Total')} ${TOTAL}${T('건','')}</small></h2>
@@ -541,13 +543,13 @@ async function act(a) {
 }
 document.addEventListener('submit', async e => {
  if (e.target.id !== 'lf') return; e.preventDefault();
- let id = $('#lid').value.trim().toLowerCase(); const pw = $('#lpw').value;
+ let id = $('#lid').value.trim().toLowerCase(); const pw = $('#lpw').value; const keepId = $('#sid') ? $('#sid').checked : true;
  if (!id || !pw) return; if (!id.includes('@')) id += DOMAIN;
  BUSY = true; ERR = ''; render(); $('#lid').value = id.replace(DOMAIN, '');
  const {error} = await sb.auth.signInWithPassword({email:id, password:pw});
  BUSY = false;
  if (error) { ERR = T('ID 또는 비밀번호가 맞지 않습니다','Wrong ID or password'); render(); $('#lid').value = id.replace(DOMAIN, ''); return; }
- try { localStorage.setItem('am_id', id.replace(DOMAIN, '')); } catch (e) {}
+ try { localStorage.setItem('am_sid', keepId ? '1' : '0'); if (keepId) localStorage.setItem('am_id', id.replace(DOMAIN, '')); else localStorage.removeItem('am_id'); } catch (e) {}
  const h = AFTER; AFTER = ''; go(h);
 });
 let qt; document.addEventListener('input', e => { if (e.target.id === 'q') { Q = e.target.value; clearTimeout(qt); qt = setTimeout(loadList, 350); } });
