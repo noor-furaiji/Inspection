@@ -103,6 +103,8 @@ td{padding:6px 0}
 .pdf tr{display:table-row!important}.pdf th{width:40%!important;padding:5px 8px 5px 0!important}.pdf .sum th{width:30%!important;background:var(--soft)!important;padding-left:8px!important}
 .pdf .sec{padding:8px 14px}.pdf .views{gap:8px;max-width:600px}.pdf .key{padding:8px 14px}.pdf .band{padding:10px 14px}.pdf .note{padding:5px 14px}.pdf .foot{padding:8px 14px}.pdf .band h1{margin-left:auto;text-align:end}.pdf .sheet{margin:0}
 .ver{color:#b0bccb;font-size:11px}.pdf .ver{display:none}
+.del{background:none;border:0;font-size:18px;min-width:40px;min-height:40px;cursor:pointer;opacity:.7}.del:hover{opacity:1}
+.btn.delbtn{background:#fde0e0;color:#a51f1f;border-color:#f3b4b4;margin-top:10px}
 .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#16202e;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;z-index:9}
 @media(max-width:860px){.two{grid-template-columns:1fr}.two>.sec+.sec{border-left:0}}
 .vw figcaption{font-size:12px}
@@ -326,7 +328,7 @@ function outer() {
  return `<span>${T('수리필요 총','Needs repair:')} <b>${c.need.length}</b>${T('판',' panel(s)')}</span>${codes.map(k=>`<span class="tag y">${k} ${tl(NC[k])}</span>`).join('')}<span class="u">· ${tl(HC.X)} <b>${c.ex}</b> · ${tl(HC.W)} <b>${c.wl}</b> ${MODE==='edit'?T('(도면에서 자동 계산)','(auto from diagram)'):''}</span>`;
 }
 /* ===== version: change on every release; old copies reload themselves ===== */
-const APP_VERSION = '2026.11.20-3';
+const APP_VERSION = '2026.11.20-4';
 (async () => { try { const r = await fetch(location.pathname + '?v=' + Date.now(), {cache:'no-store'}); const t = await r.text(); const m = t.match(/APP_VERSION = '([^']+)'/);
  if (m && m[1] !== APP_VERSION && sessionStorage.getItem('am_rl') !== m[1]) { sessionStorage.setItem('am_rl', m[1]); location.reload(); } } catch (e) {} })();
 /* ===== Supabase (database + logins) ===== */
@@ -335,7 +337,7 @@ const SB_KEY = 'sb_publishable_OMpV9V_xrmQWXiCWwULFJQ_o_QfCT9K';
 const DOMAIN = '@automatchkorea.com';
 const ADMIN_EMAIL = 'admin' + DOMAIN;
 const sb = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY) : null;
-let PDFB = null, PDFMODE = false, BN = '';
+let PDFB = null, PDFMODE = false, BN = '', DELCF = null;
 const MG = () => { try { return localStorage.getItem('am_mgr') || ''; } catch (e) { return ''; } };
 let PAGE = 'loading', ROLE = null, RID = null, META = null, SENDS = [], LIST = [], TOTAL = 0, Q = '', CONFIRM = false, BUSY = false, ERR = '', AFTER = '';
 const BASE = () => location.origin + location.pathname;
@@ -379,7 +381,8 @@ function adminTools() {
   <details class="mute"><summary>${T('링크로 보내기','Send as link instead')}</summary><div class="lk"><input id="lkEn" readonly value="${esc(repLink('en', RID))}"><button type="button" class="btn dark" data-copy="lkEn">${T('복사','Copy')}</button></div></details>
   <h2 style="margin-top:12px">${T('보낸 기록','Send history')} <small>${SENDS.length}</small></h2>
   ${SENDS.length ? `<table class="ptab"><tbody>${SENDS.map(s => `<tr><td>${esc(fdt(s.sent_at))}</td><td><b>${esc(s.buyer_name||'—')}</b></td><td>${s.manager?T('담당','by')+' '+esc(s.manager):''}</td></tr>`).join('')}</tbody></table>` : `<p class="mute">${T('아직 보낸 기록이 없습니다','Not sent to any buyer yet')}</p>`}
-  ${META ? `<p class="mute">${T('제출','Submitted')}: ${esc(fdt(META.created_at))}</p>` : ''}</section>`;
+  ${META ? `<p class="mute">${T('제출','Submitted')}: ${esc(fdt(META.created_at))}</p>` : ''}
+  <button type="button" class="btn delbtn" data-del="${RID}">🗑 ${T('보고서 삭제','Delete report')}</button></section>`;
 }
 const hasPref = () => { try { return localStorage.getItem('am_sid') !== null; } catch (e) { return false; } };
 const lastId = () => { try { return localStorage.getItem('am_id') || ''; } catch (e) { return ''; } };
@@ -392,9 +395,9 @@ function loginPage() {
 }
 function listPage() {
  return band() + `<section class="sec"><h2>${T('점검 보고서','Inspection reports')} <small>${T('총','Total')} ${TOTAL}${T('건','')}</small></h2>
-  <input id="q" type="search" placeholder="${T('차량번호 / 차량명 검색','Search plate or model')}" value="${esc(Q)}">
-  ${LIST.length ? `<table class="ptab list"><thead><tr><th>${T('제출일','Submitted')}</th><th>${T('차량번호','Plate')}</th><th>${T('차량명','Model')}</th><th>${T('바이어 전송','Sent to')}</th><th>${T('담당 매니저','Manager')}</th></tr></thead><tbody>${LIST.map(r => { const s = (r.sends||[]).sort((a,b)=>b.sent_at>a.sent_at?1:-1);
-   return `<tr data-open="${r.id}"><td>${esc(fdt(r.created_at))}</td><td><b>${esc(r.plate||'—')}</b></td><td>${esc(r.model||'')}</td><td>${s.length?`<span class="tag g">${esc(s[0].buyer_name||'')}${s.length>1?' +'+(s.length-1):''}</span>`:`<span class="tag n">${T('미전송','Not sent')}</span>`}</td><td>${s.length&&s[0].manager?`<b>${esc(s[0].manager)}</b>`:'<span class="dash">—</span>'}</td></tr>`; }).join('')}</tbody></table>` : `<p class="mute">${BUSY?'…':T('보고서가 없습니다','No reports yet')}</p>`}</section>` + foot;
+  <input id="q" type="search" placeholder="${T('차량번호 또는 차량명으로 검색','Search by car number or model')}" value="${esc(Q)}">
+  ${LIST.length ? `<table class="ptab list"><thead><tr><th>${T('제출일','Submitted')}</th><th>${T('차량번호','Plate')}</th><th>${T('차량명','Model')}</th><th>${T('바이어 전송','Sent to')}</th><th>${T('담당 매니저','Manager')}</th><th></th></tr></thead><tbody>${LIST.map(r => { const s = (r.sends||[]).sort((a,b)=>b.sent_at>a.sent_at?1:-1);
+   return `<tr data-open="${r.id}"><td>${esc(fdt(r.created_at))}</td><td><b>${esc(r.plate||'—')}</b></td><td>${esc(r.model||'')}</td><td>${s.length?`<span class="tag g">${esc(s[0].buyer_name||'')}${s.length>1?' +'+(s.length-1):''}</span>`:`<span class="tag n">${T('미전송','Not sent')}</span>`}</td><td>${s.length&&s[0].manager?`<b>${esc(s[0].manager)}</b>`:'<span class="dash">—</span>'}</td><td><button type="button" class="del" data-del="${r.id}" aria-label="${T('삭제','Delete')}">🗑</button></td></tr>`; }).join('')}</tbody></table>` : `<p class="mute">${BUSY?'…':T('보고서가 없습니다','No reports yet')}</p>`}</section>` + foot;
 }
 function donePage() {
  return band() + `<section class="sec donep"><p class="big">✓ ${T('제출 완료','Submitted')}</p><p class="carline">${T('차량번호','Plate')}: <b>${esc(S.f.plate||'—')}</b> · ${T('차량명','Model')}: <b>${esc([S.f.model,S.f.year].filter(Boolean).join(' ')||'—')}</b></p>
@@ -424,6 +427,8 @@ function render() {
  app.className = 'sheet ' + (PAGE === 'report' || PAGE === 'form' ? MODE : PAGE);
  app.innerHTML = PAGE === 'loading' ? `<div class="sec">…</div>` : PAGE === 'login' ? loginPage() : PAGE === 'list' ? listPage() : PAGE === 'done' ? donePage() : PAGE === 'missing' ? band() + `<section class="sec"><p class="err">${T('보고서를 찾을 수 없습니다','Report not found')}</p></section>` + foot : sheet() + modal();
  $('#bar').innerHTML = bar();
+ if (DELCF) app.insertAdjacentHTML('beforeend', `<div class="modal"><div><p><b>${T('이 보고서를 삭제할까요?','Delete this report?')}</b></p><p>${T('삭제하면 되돌릴 수 없습니다. 보낸 기록도 함께 삭제됩니다.','This cannot be undone. Its send history is deleted too.')}</p>
+  <div class="sbtns"><button type="button" class="btn dark" data-act="nodel">${T('취소','Cancel')}</button><button type="button" class="btn delbtn" data-act="dodel" ${BUSY?'disabled':''}>${BUSY?'…':T('삭제','Delete')}</button></div></div></div>`);
 }
 function prune(s) {
  const f = {}; for (const [k,v] of Object.entries(s.f)) if (has(v)) f[k] = v;
@@ -443,7 +448,7 @@ const loadDraft = () => { try { const d = JSON.parse(localStorage.getItem('am_in
 async function loadList() {
  BUSY = true; render();
  let q = sb.from('reports').select('id,created_at,plate,model,sends(buyer_name,manager,sent_at)', {count:'exact'}).order('created_at', {ascending:false}).limit(300);
- const s = Q.trim().replace(/[%,()]/g, ''); if (s) q = q.or(`plate.ilike.%${s}%,model.ilike.%${s}%`);
+ const s = Q.trim().replace(/[%,()*]/g, ''); if (s) { const loose = '%' + s.replace(/\s+/g, '').split('').join('%') + '%'; q = q.or(`plate.ilike.${loose},model.ilike.%${s}%`); }
  const {data, count, error} = await q; BUSY = false;
  if (error) toast(error.message); LIST = data || []; if (!s) TOTAL = count || 0; else TOTAL = TOTAL || count || 0;
  render(); const qi = $('#q'); if (qi && s) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); }
@@ -534,6 +539,15 @@ async function act(a) {
   const {error} = await sb.from('reports').update({data:prune(S), plate:S.f.plate||null, model:S.f.model||null, updated_at:new Date().toISOString()}).eq('id', RID);
   BUSY = false; if (error) { toast(error.message); render(); return; } SEL = null; toast(T('저장됨','Saved')); loadReport(RID);
  }
+ else if (a === 'nodel') { DELCF = null; keep(); }
+ else if (a === 'dodel') {
+  BUSY = true; keep(); const id = DELCF;
+  const {error} = await sb.from('reports').delete().eq('id', id);
+  BUSY = false; DELCF = null;
+  if (error) { toast(error.message); keep(); return; }
+  toast(T('삭제됨','Deleted')); LIST = LIST.filter(r => r.id !== id); TOTAL = Math.max(0, TOTAL - 1);
+  if (PAGE === 'report') go(''); else keep();
+ }
  else if (a === 'savermk') {
   S.f.rmkEn = $('#rmkEnBox').value.trim(); BUSY = true;
   const {error} = await sb.from('reports').update({data:prune(S), updated_at:new Date().toISOString()}).eq('id', RID);
@@ -585,6 +599,7 @@ document.addEventListener('submit', async e => {
 });
 let qt; document.addEventListener('input', e => { if (e.target.id === 'q') { Q = e.target.value; clearTimeout(qt); qt = setTimeout(loadList, 350); } });
 document.addEventListener('click', e => {
+ const dl = e.target.closest('[data-del]'); if (dl) { if (ROLE === 'admin') { DELCF = dl.dataset.del; keep(); } return; }
  const tr = e.target.closest('[data-open]'); if (tr) { go('#ko.' + tr.dataset.open); return; }
  const b = e.target.closest('[data-f],[data-sel],[data-pc],[data-std],[data-act],[data-lang],[data-copy],[data-step]');
  if (!b) return; const d = b.dataset;
