@@ -148,7 +148,7 @@ const EXT = [['mir','사이드미러','Side mirrors',['scratch','broken','malf']
  ['hl','램프 - 헤드/리어','Head / tail lamps',['scratch','broken','white']],['fog','안개등 (앞/뒤)','Fog lamps (front/rear)',['scratch','broken','white']],
  ['grill','그릴','Grille',['scratch','broken','discol']],['mold','몰딩','Moldings',['scratch','broken','discol']],['garn','가니쉬','Garnish',['scratch','broken']],
  ['bump','범퍼/에어댐 (앞/뒤)','Bumper / air dam (front/rear)',['scratch','broken','discol']],['eng','엔진부식 정도','Engine bay corrosion',['minor','mid','severe'],1],
- ['under','하부 녹/부식','Underbody rust / corrosion',['minor','mid','severe'],1],['muff','소음기 부식','Muffler corrosion',['minor','mid','severe'],1],
+ ['under','하부 녹/부식','Underbody rust',['minor','mid','severe'],1],['muff','소음기 부식','Muffler corrosion',['minor','mid','severe'],1],
  ['fin','외장상태','Exterior finish',['wrap','sticker','paint']]];
 const GMF = ['good','minor','fix'], GMS = ['good','minor','severe'];
 const SUM = [
@@ -460,11 +460,13 @@ async function makePdf() {
  const wrap = document.createElement('div'); wrap.style.cssText = 'position:absolute;left:0;top:0;width:740px;z-index:-1;pointer-events:none'; wrap.appendChild(box); document.body.appendChild(wrap);
  try { if (document.fonts && document.fonts.ready) await document.fonts.ready;
   await Promise.all([...box.querySelectorAll('svg')].map(sv => new Promise(res => {
-   sv.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); { const v = sv.viewBox.baseVal; sv.setAttribute('width', v.width * 2); sv.setAttribute('height', v.height * 2); } sv.setAttribute('font-family', 'Arial, sans-serif');
-   sv.querySelectorAll('.pn').forEach(pth => { pth.setAttribute('stroke', '#6f7f95'); pth.setAttribute('stroke-width', '1.3'); });
-   const vb = sv.viewBox.baseVal, w = sv.getBoundingClientRect().width || 160, im = new Image();
-   im.onload = im.onerror = res; im.style.cssText = 'width:100%;display:block'; im.width = w; im.height = w * vb.height / vb.width;
-   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(sv)); sv.replaceWith(im);
+   const r = sv.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height)), k = 3;
+   const c = sv.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w * k); c.setAttribute('height', h * k); c.setAttribute('font-family', 'Arial, sans-serif');
+   c.querySelectorAll('.pn').forEach(pth => { pth.setAttribute('stroke', '#6f7f95'); pth.setAttribute('stroke-width', '1.3'); });
+   const im = new Image();
+   im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = w * k; cv.height = h * k; cv.getContext('2d').drawImage(im, 0, 0, w * k, h * k);
+     const out = new Image(); out.style.cssText = `width:${w}px;height:${h}px;display:block;margin:0 auto;flex:none`; out.onload = out.onerror = res; out.src = cv.toDataURL('image/png'); sv.replaceWith(out); } catch (e) { res(); } };
+   im.onerror = res; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
   })));
   return await lib().set({margin:[6,6,6,6], image:{type:'jpeg', quality:0.92}, html2canvas:{scale:2, backgroundColor:'#ffffff', scrollX:0, scrollY:0, windowWidth:740}, jsPDF:{unit:'mm', format:'a4', orientation:'portrait'}, pagebreak:{mode:['css','legacy'], avoid:['tr','.views','.key','.cell']}}).from(box).outputPdf('blob');
  } finally { wrap.remove(); }
