@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AutoMatch 진단평가지</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#001a40">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AutoMatch">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -15,7 +22,7 @@
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);font:15px/1.5 "Noto Sans KR",system-ui,sans-serif;overflow-x:clip}
 .sheet{max-width:1180px;margin:16px auto 110px;background:#fff;color:var(--ink);border-radius:10px;overflow:hidden;box-shadow:0 2px 18px rgba(0,20,60,.14)}
-.band{background:var(--deep);color:#fff;display:flex;align-items:center;gap:14px;padding:14px 22px;flex-wrap:wrap}
+.band{background:var(--deep);color:#fff;display:flex;align-items:center;gap:14px;padding:calc(14px + env(safe-area-inset-top)) 22px 14px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:19px;letter-spacing:.14em}.logo img{height:34px}
 .band h1{margin:0 0 0 auto;font-size:19px;font-weight:900;text-align:end;line-height:1.25}
 .band h1 small{display:block;font-size:12.5px;color:#a9bfe0;font-weight:500}
@@ -80,7 +87,7 @@ td{padding:6px 0}
 .btn{font:inherit;font-weight:700;font-size:14.5px;min-height:44px;border-radius:8px;padding:0 16px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
 .btn.main{background:var(--acc);color:#18212b}.btn.ghost{background:transparent;color:#fff;border-color:#4d668c}.btn.dark{background:var(--navy);color:#fff}
 .btn.wa{background:#25d366;color:#08311a}.btn.kk{background:#fee500;color:#191600}.sbtns{display:flex;flex-wrap:wrap;gap:8px}.sbtns .btn{flex:1 1 260px}
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--deep);padding:10px max(14px,4vw);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;z-index:5;box-shadow:0 -2px 12px rgba(0,0,0,.2)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--deep);padding:10px max(14px,4vw) calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;flex-wrap:wrap;justify-content:center;z-index:5;box-shadow:0 -2px 12px rgba(0,0,0,.2)}
 .seg{display:inline-flex;border:1px solid #4d668c;border-radius:8px;overflow:hidden}.seg button{font:inherit;font-weight:700;background:none;color:#a9bfe0;border:0;min-width:48px;min-height:42px;cursor:pointer}
 .seg button[aria-pressed=true]{background:#fff;color:var(--deep)}
 .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:12px 22px;font-size:13px;color:var(--mute)}.foot a{color:var(--navy);font-weight:700}
@@ -580,6 +587,7 @@ document.addEventListener('input', e => {
  else if (t.dataset.pt && SEL) { P(SEL).t = t.value.replace(/\D/g,''); save(); $('#views').innerHTML = views(); const c = $('#pcls'); if (c) c.innerHTML = clsTag(P(SEL).t); }
 });
 addEventListener('hashchange', () => { SEL = null; route(); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 if (!sb) { $('#app').innerHTML = '<div class="sec">Could not load. Check your internet and refresh.</div>'; } else route();
 }
 </script>
