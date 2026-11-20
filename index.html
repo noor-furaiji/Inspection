@@ -20,6 +20,7 @@
 :root{color-scheme:light dark;--bg:light-dark(#e6ebf2,#0b1220);--ink:#16202e;--mute:#5d6b7e;--line:#cdd6e1;--soft:#f2f5f9;--navy:#0b2a5b;--deep:#001a40;--acc:#f0a020;--ok:#1d8a4e;--x:#d63b3b}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);font:15px/1.5 "Noto Sans KR",system-ui,sans-serif;overflow-x:clip}
 .sheet{max-width:1180px;margin:16px auto 110px;background:#fff;color:var(--ink);border-radius:10px;overflow:hidden;box-shadow:0 2px 18px rgba(0,20,60,.14)}
 .band{background:var(--deep);color:#fff;display:flex;align-items:center;gap:14px;padding:calc(14px + env(safe-area-inset-top)) 22px 14px;flex-wrap:wrap}
@@ -343,20 +344,24 @@ function band() {
 }
 const foot = `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span></footer>`;
 
-function sheet() {
+function parts() {
  const f = S.f, c = counts();
  let h = band() + `<div class="note">※ ${T('W(판금)는 X(교환)와 동일한 사고이력으로 간주함','W (sheet metal) is treated as accident history, the same as X (exchanged)')}</div>`;
  if (MODE === 'view') h += `<div class="key"><div><small>${T('차량','Vehicle')}</small><b>${esc(f.model||'—')} ${esc(f.year||'')}</b></div><div><small>${T('주행거리','Mileage')}</small><b>${has(f.km)?esc(fnum(f.km))+' km':'—'}</b></div><div><small>${T('사고','Accident')}</small>${f.acc?tag(f.acc):'<b>—</b>'}</div><div><small>${T('외판 교환 / 판금','Exchanged / sheet metal')}</small><b>X ${c.ex} · W ${c.wl}</b></div><div><small>${T('주요골격','Main frame')}</small>${c.frame.length?`<span class="tag r">${T('손상','Damaged')}</span>`:`<span class="tag g">${T('이상없음','No damage')}</span>`}</div></div>`;
  h += `<section class="sec"><h2>${T('차량 정보','Vehicle')}</h2><div class="grid">${INFO.map(x => `<div class="cell"><b>${L==='en'?x.en:x.ko}</b><div>${x.t==='keys'?smallNums(KEYS,T('개','')):fld(x)}</div></div>`).join('')}</div></section>
- <section class="sec">${carSec()}</section><div class="two"><section class="sec">${checklist(INT,'내부상태','Interior',['불량시 체크','check if defective'])}</section><section class="sec">${checklist(EXT,'외부상태','Exterior',['불량시 체크','check if defective'])}</section></div>
+ <section class="sec">${carSec()}</section>`;
+ let h2 = `<div class="two"><section class="sec">${checklist(INT,'내부상태','Interior',['불량시 체크','check if defective'])}</section><section class="sec">${checklist(EXT,'외부상태','Exterior',['불량시 체크','check if defective'])}</section></div>
  <section class="sec"><h2>${T('평가 요약','Evaluation summary')}</h2><table class="sum">${SUM.map(r => `<tr><th>${L==='en'?r.en:r.ko}</th><td>${r.auto?outer():r.frame?frameStat():r.tire?smallNums(TIRES,'%'):r.f.map(fld).join('')}</td></tr>`).join('')}</table></section>
  <section class="sec"><h2>${T('비고','Remarks')}</h2>`;
- if (MODE === 'edit') h += `<textarea data-i="rmk" placeholder="${T('점검자 비고 (한국어)','Inspector remarks (Korean)')}">${esc(f.rmk||'')}</textarea>` +
+ if (MODE === 'edit') h2 += `<textarea data-i="rmk" placeholder="${T('점검자 비고 (한국어)','Inspector remarks (Korean)')}">${esc(f.rmk||'')}</textarea>` +
   (ROLE === 'admin' ? `<div style="height:8px"></div><textarea data-i="rmkEn" placeholder="${T('영문 비고 — 바이어용','English remarks for the buyer')}">${esc(f.rmkEn||'')}</textarea>` : '');
- else { const t = L === 'en' ? (f.rmkEn || f.rmk) : f.rmk; h += t ? `<p class="rmk">${esc(t)}</p>${L==='en'&&!f.rmkEn?'<p class="mute">(Inspector\'s original note in Korean)</p>':''}` : '<span class="dash">—</span>'; }
- h += `</section>`;
- if (PAGE === 'report' && MODE === 'view' && ROLE === 'admin' && !PDFMODE) h += adminTools();
- return h + foot;
+ else { const t = L === 'en' ? (f.rmkEn || f.rmk) : f.rmk; h2 += t ? `<p class="rmk">${esc(t)}</p>${L==='en'&&!f.rmkEn?'<p class="mute">(Inspector\'s original note in Korean)</p>':''}` : '<span class="dash">—</span>'; }
+ h2 += `</section>`;
+ return [h, h2];
+}
+function sheet() {
+ const [a, b] = parts();
+ return a + b + (PAGE === 'report' && MODE === 'view' && ROLE === 'admin' ? adminTools() : '') + foot;
 }
 function adminTools() {
  return `<section class="sec share noprint"><h2>${T('영문 비고 — 바이어용','English remarks for the buyer')} <small>${T('점검자 비고를 번역해 입력하세요','translate the inspector remarks')}</small></h2>
@@ -456,26 +461,38 @@ async function route() {
 }
 const go = h => { if (location.hash === h || (!h && !location.hash)) route(); else location.hash = h; };
 
-/* ---- PDF (English buyer version) ---- */
-let h2p = null;
-const loadH2P = () => h2p || (h2p = new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; sc.onload = () => ok(window.html2pdf); sc.onerror = () => { h2p = null; no(new Error('PDF library failed to load')); }; document.head.appendChild(sc); }));
-const pdfName = () => 'AutoMatch_Inspection_' + ((S.f.model || '') + ' ' + (S.f.year || '')).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + (S.f.plate ? '' : '') + '_' + RID.slice(0, 6) + '.pdf';
+/* ---- PDF (English buyer version): exactly 2 fixed A4 pages, same on every device ---- */
+const libs = {};
+const loadJs = src => libs[src] || (libs[src] = new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = () => { delete libs[src]; no(new Error('PDF library failed to load — check internet')); }; document.head.appendChild(sc); }));
+const pdfName = () => { const a = ((S.f.model || '') + ' ' + (S.f.year || '')).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); return 'AutoMatch_Inspection_' + (a || (S.f.date || today()).replace(/-/g, '')) + '_' + RID.slice(0, 6) + '.pdf'; };
+async function rasterSvgs(root) {
+ await Promise.all([...root.querySelectorAll('svg')].map(sv => new Promise(res => {
+  const r = sv.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height)), k = 3;
+  const c = sv.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w * k); c.setAttribute('height', h * k); c.setAttribute('font-family', 'Arial, sans-serif');
+  c.querySelectorAll('.pn').forEach(pth => { pth.setAttribute('stroke', '#6f7f95'); pth.setAttribute('stroke-width', '1.3'); });
+  const im = new Image();
+  im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = w * k; cv.height = h * k; cv.getContext('2d').drawImage(im, 0, 0, w * k, h * k);
+    const out = new Image(); out.style.cssText = `width:${w}px;height:${h}px;display:block;margin:0 auto;flex:none`; out.onload = out.onerror = res; out.src = cv.toDataURL('image/png'); sv.replaceWith(out); } catch (e) { res(); } };
+  im.onerror = res; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
+ })));
+}
 async function makePdf() {
- const lib = await loadH2P(); const keepL = L, keepB = BUYER;
- L = 'en'; BUYER = true; PDFMODE = true; const html = sheet(); L = keepL; BUYER = keepB; PDFMODE = false;
- const box = document.createElement('div'); box.className = 'sheet view pdf'; box.innerHTML = html;
- const wrap = document.createElement('div'); wrap.style.cssText = 'position:absolute;left:0;top:0;width:740px;z-index:-1;pointer-events:none'; wrap.appendChild(box); document.body.appendChild(wrap);
- try { if (document.fonts && document.fonts.ready) await document.fonts.ready;
-  await Promise.all([...box.querySelectorAll('svg')].map(sv => new Promise(res => {
-   const r = sv.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height)), k = 3;
-   const c = sv.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w * k); c.setAttribute('height', h * k); c.setAttribute('font-family', 'Arial, sans-serif');
-   c.querySelectorAll('.pn').forEach(pth => { pth.setAttribute('stroke', '#6f7f95'); pth.setAttribute('stroke-width', '1.3'); });
-   const im = new Image();
-   im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = w * k; cv.height = h * k; cv.getContext('2d').drawImage(im, 0, 0, w * k, h * k);
-     const out = new Image(); out.style.cssText = `width:${w}px;height:${h}px;display:block;margin:0 auto;flex:none`; out.onload = out.onerror = res; out.src = cv.toDataURL('image/png'); sv.replaceWith(out); } catch (e) { res(); } };
-   im.onerror = res; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
-  })));
-  return await lib().set({margin:[6,6,6,6], image:{type:'jpeg', quality:0.92}, html2canvas:{scale:2, backgroundColor:'#ffffff', scrollX:0, scrollY:0, windowWidth:740}, jsPDF:{unit:'mm', format:'a4', orientation:'portrait'}, pagebreak:{mode:['css','legacy'], avoid:['tr','.views','.key','.cell']}}).from(box).outputPdf('blob');
+ await Promise.all([loadJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]);
+ const keepL = L, keepB = BUYER; L = 'en'; BUYER = true; PDFMODE = true;
+ let pages; try { const [a, b] = parts(); pages = [a, band() + b + foot]; } finally { L = keepL; BUYER = keepB; PDFMODE = false; }
+ const wrap = document.createElement('div'); wrap.style.cssText = `position:absolute;left:0;top:${scrollY}px;width:794px;z-index:-1;pointer-events:none;opacity:1`;
+ const els = pages.map(html => { const d = document.createElement('div'); d.className = 'sheet view pdf'; d.style.width = '794px'; d.innerHTML = html; wrap.appendChild(d); return d; });
+ document.body.appendChild(wrap);
+ try {
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await rasterSvgs(wrap);
+  const pdf = new window.jspdf.jsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
+  for (let i = 0; i < els.length; i++) {
+   const cv = await window.html2canvas(els[i], {scale:2, backgroundColor:'#ffffff', windowWidth:1100, width:794, scrollX:0, scrollY:-scrollY, logging:false});
+   const W = 210, H = 297; let w = W, h = W * cv.height / cv.width; if (h > H) { h = H; w = H * cv.width / cv.height; }
+   if (i) pdf.addPage(); pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', (W - w) / 2, 0, w, h);
+  }
+  return pdf.output('blob');
  } finally { wrap.remove(); }
 }
 function savePdfBlob(b) { const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = pdfName(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); }
