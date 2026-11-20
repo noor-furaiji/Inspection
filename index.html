@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AutoMatch 진단평가지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE formal, clinical: a dealer's inspection sheet
+   IDEA the paper 진단평가지 the inspector already fills, rebuilt as a live form
+   PICTURE top-down car, every panel tappable, coloured by repair history
+   COLOUR AutoMatch deep navy band, white paper, orange action, red/amber/yellow status
+   TYPE Noto Sans KR · LAYOUT ruled sections, diagram beside checklists, stacks on phone */
+:root{color-scheme:light dark;--bg:light-dark(#e6ebf2,#0b1220);--ink:#16202e;--mute:#5d6b7e;--line:#cdd6e1;--soft:#f2f5f9;--navy:#0b2a5b;--deep:#001a40;--acc:#f0a020;--ok:#1d8a4e;--x:#d63b3b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);font:15px/1.5 "Noto Sans KR",system-ui,sans-serif;overflow-x:clip}
+.sheet{max-width:1180px;margin:16px auto 110px;background:#fff;color:var(--ink);border-radius:10px;overflow:hidden;box-shadow:0 2px 18px rgba(0,20,60,.14)}
+.band{background:var(--deep);color:#fff;display:flex;align-items:center;gap:14px;padding:14px 22px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:19px;letter-spacing:.14em}.logo img{height:34px}
+.band h1{margin:0 0 0 auto;font-size:19px;font-weight:900;text-align:end;line-height:1.25}
+.band h1 small{display:block;font-size:12.5px;color:#a9bfe0;font-weight:500}
+.note{background:#fff3dc;color:#6e4300;font-weight:700;font-size:14px;padding:7px 22px;border-bottom:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.note button{margin-left:auto;font:inherit;font-size:12.5px;background:none;border:1px solid #d9b26a;color:#6e4300;border-radius:6px;padding:3px 10px;cursor:pointer}
+.sec{padding:14px 22px;border-bottom:1px solid var(--line)}
+h2{font-size:15.5px;font-weight:900;color:var(--navy);margin:0 0 9px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+h2 small{font-weight:500;color:var(--mute);font-size:12.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.cell{display:grid;grid-template-columns:7.2em minmax(0,1fr);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cell>b{background:var(--soft);font-size:13px;padding:8px;color:var(--navy)}
+.cell>div,td{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.cell>div{padding:5px 8px}
+input,textarea{font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid #b9c5d4;border-radius:6px;padding:6px 8px;width:100%;min-height:40px}
+textarea{min-height:76px;resize:vertical}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+input.n{width:5em;text-align:right}input.n.w{width:7.5em}
+.u{color:var(--mute);font-size:13px}
+.chip{font:inherit;font-size:13.5px;border:1px solid #b9c5d4;background:#fff;color:var(--ink);border-radius:20px;padding:5px 12px;min-height:38px;cursor:pointer}
+.chip[aria-pressed=true]{color:#fff;border-color:transparent;background:var(--navy)}
+.chip.g[aria-pressed=true]{background:var(--ok)}.chip.y[aria-pressed=true]{background:#b97f00}.chip.r[aria-pressed=true]{background:var(--x)}
+.chip.sm{font-size:12.5px;min-height:34px;padding:3px 10px}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:13px;font-weight:700;white-space:nowrap}
+.g{--t:#e2f3e9;--c:#14663a}.y{--t:#fcefcc;--c:#7a5300}.r{--t:#fde0e0;--c:#a51f1f}.n{--t:#e7eef8;--c:#0b2a5b}.o{--t:#fde3c8;--c:#9a4d00}
+.tag{background:var(--t);color:var(--c)}
+.dash{color:#9aa6b5}.txt{color:var(--ink);font-size:13.5px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.two>.sec+.sec{border-left:1px solid var(--line)}
+table{width:100%;border-collapse:collapse}
+tr{border-bottom:1px solid var(--line)}tr:last-child{border-bottom:0}
+th{text-align:start;font-size:13.5px;font-weight:700;padding:7px 8px 7px 0;width:40%;vertical-align:top}
+td{padding:6px 0}
+.sum th{width:30%;background:var(--soft);padding-left:8px;color:var(--navy)}.sum td{padding:6px 8px}
+.sum td input:not(.n){flex:1 1 220px}
+.sum{border:1px solid var(--line)}
+.leg{font-size:12.5px;color:var(--mute);display:grid;gap:3px;margin-bottom:8px}.leg b{color:var(--ink)}
+.cd{display:inline-block;font-weight:900;color:var(--navy);margin-left:4px}
+.views{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:860px;margin:0 auto}
+.vw{margin:0;text-align:center}.vw svg{width:100%;display:block}.vw figcaption{font-size:13px;font-weight:700;color:var(--navy)}
+.ped{max-width:860px;margin:10px auto 0}.pedtop{display:flex;gap:6px;align-items:center}
+.pedtop select{flex:1;font:inherit;font-size:16px;min-height:44px;border:1px solid #b9c5d4;border-radius:8px;padding:0 8px;background:#fff;color:var(--ink)}
+.btn.sq{min-width:46px;padding:0}.thk input.big{font-size:22px;font-weight:900;width:4.6em;min-height:48px}
+.ped.start{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;border-style:dashed}
+.ptab{max-width:860px;margin:0 auto}.frbad{color:#a51f1f;font-weight:700;margin:6px 0}
+.pn{stroke:#6f7f95;stroke-width:1.3;cursor:pointer;transition:fill .15s}.pn.on{stroke:var(--acc);stroke-width:3.5}
+.view .pn{cursor:default}
+.sw{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-size:12px;color:var(--mute);margin-bottom:8px}
+.sw i{display:inline-block;width:12px;height:12px;border:1px solid #8a98ab;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.prow{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 10px}
+.ped{border:1.5px solid var(--acc);border-radius:10px;padding:10px 12px;display:grid;gap:8px;background:#fffaf0}
+.ped label{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:700}
+.ped>div{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.hint{color:var(--mute);font-size:13.5px;text-align:center;margin:4px 0}
+.ptab td,.ptab th{display:table-cell;font-size:13px;padding:5px 6px;width:auto;vertical-align:middle}.ptab thead th{color:var(--mute);font-weight:500}
+.r{text-align:right}
+.okline{color:var(--ok);font-weight:700;margin:6px 0}.mute{color:var(--mute);font-size:12.5px;margin:6px 0 0}
+.key{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:14px 22px;border-bottom:1px solid var(--line)}
+.key div{border:1.5px solid var(--line);border-radius:10px;padding:6px 12px}.key small{display:block;color:var(--mute);font-size:12px}.key b{font-size:16.5px}
+.rmk{white-space:pre-wrap;font-size:15px;margin:0}
+.share{background:var(--soft)}.share .lk{display:flex;gap:6px;margin:4px 0 10px}.share label{font-weight:700;font-size:13.5px}
+.share input{font-size:13px}
+.btn{font:inherit;font-weight:700;font-size:14.5px;min-height:44px;border-radius:8px;padding:0 16px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
+.btn.main{background:var(--acc);color:#18212b}.btn.ghost{background:transparent;color:#fff;border-color:#4d668c}.btn.dark{background:var(--navy);color:#fff}
+.btn.wa{background:#25d366;color:#08311a}.btn.kk{background:#fee500;color:#191600}.sbtns{display:flex;flex-wrap:wrap;gap:8px}.sbtns .btn{flex:1 1 260px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--deep);padding:10px max(14px,4vw);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;z-index:5;box-shadow:0 -2px 12px rgba(0,0,0,.2)}
+.seg{display:inline-flex;border:1px solid #4d668c;border-radius:8px;overflow:hidden}.seg button{font:inherit;font-weight:700;background:none;color:#a9bfe0;border:0;min-width:48px;min-height:42px;cursor:pointer}
+.seg button[aria-pressed=true]{background:#fff;color:var(--deep)}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:12px 22px;font-size:13px;color:var(--mute)}.foot a{color:var(--navy);font-weight:700}
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#16202e;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;z-index:9}
+@media(max-width:860px){.two{grid-template-columns:1fr}.two>.sec+.sec{border-left:0}}
+.vw figcaption{font-size:12px}
+@media(max-width:600px){.views{gap:4px}.sec,.band,.key,.foot{padding-left:14px;padding-right:14px}.note{padding:7px 14px}.sheet{margin:0 0 120px;border-radius:0}
+ tr{display:grid}th{width:auto;padding-bottom:2px}.sum th{background:none;padding-left:8px}.band h1{margin-left:0;text-align:start}.ptab tr{display:table-row}}
+@media print{@page{size:A4;margin:8mm}body{background:#fff;font-size:11.5px}.bar,.share,.noprint{display:none!important}
+ .sheet{margin:0;box-shadow:none;border-radius:0;max-width:none}.two{grid-template-columns:1fr 1fr!important}.two>.sec+.sec{border-left:1px solid var(--line)!important}
+ .sec{padding:6px 10px}.views{max-width:600px}th,td{padding-top:1px!important;padding-bottom:1px!important;font-size:10.5px!important}th{width:58%}.tag{font-size:10px;padding:0 7px}.cell>b,.cell>div{padding:3px 6px}h2{margin-bottom:4px;font-size:13px}.leg{font-size:10px;margin-bottom:3px}.key b{font-size:13px}.key{padding:8px 10px}tr{display:table-row!important}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media(prefers-reduced-motion:reduce){.pn{transition:none}}
+</style></head><body>
+<main id="app" class="sheet"><div class="sec">불러오는 중… / Loading…</div></main>
+<nav id="bar" class="bar"></nav>
+<script>
+{
+/* ===== SETTINGS ===== */
+const LOGO = '';            // optional: logo image URL or data: URI (white logo for the navy band)
+const PUBLIC_URL = '';      // optional: full URL of this page once hosted, e.g. https://noorkaraba-web.github.io/inspection/
+const WA = '821051899201', WA_TXT = '+82 10-5189-9201';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let L = 'ko', MODE = 'edit', BUYER = false, SEL = null, armed = false;
+let S = {f:{}, p:{}, std:1};
+const T = (ko, en) => L === 'en' ? en : ko;
+const tl = a => L === 'en' ? a[1] : a[0];
+
+const O = {good:['양호','Good'],minor:['미세','Minor'],fix:['정비요','Needs repair'],severe:['심함','Severe'],mid:['보통','Moderate'],bad:['불량','Defective'],
+ none:['없음','Not equipped'],after:['사제','Aftermarket'],broken:['파손','Broken'],scratch:['긁힘','Scratched'],stain:['오염','Stained'],worn:['사용감','Signs of wear'],
+ crack:['깨짐','Cracked'],chip:['스톤칩','Stone chip'],mchip:['미세스톤칩','Minor stone chip'],ecu:['엔진체크','Check engine'],etc:['기타','Other'],malf:['작동불량','Malfunction'],
+ white:['백화','Oxidized'],discol:['변색','Discolored'],repl:['교체','Replaced'],smell:['냄새','Odor'],clean:['청소필요','Needs cleaning'],
+ wrap:['랩핑','Wrapped'],sticker:['스티커','Stickers'],paint:['도장','Repainted'],noacc:['무사고','No accident'],simple:['단순수리','Simple repair'],acc:['사고수리','Accident repair'],
+ gas:['가솔린','Gasoline'],diesel:['디젤','Diesel'],lpg:['LPG','LPG'],hev:['하이브리드','Hybrid'],ev:['전기','Electric'],w2:['2WD','2WD'],w4:['4WD','4WD'],at:['오토','Automatic'],mt:['수동','Manual']};
+const G = new Set(['good','noacc']), Y = new Set(['minor','mid','simple','worn','mchip','smell','clean','paint','sticker','wrap','after','white','discol','etc']),
+ N = new Set(['gas','diesel','lpg','hev','ev','w2','w4','at','mt','none']);
+const tone = o => G.has(o) ? 'g' : Y.has(o) ? 'y' : N.has(o) ? 'n' : 'r';
+const tag = o => `<span class="tag ${tone(o)}">${esc(tl(O[o]))}</span>`;
+
+const INFO = [
+ {id:'plate',ko:'차량번호',en:'Plate no.',t:'t'},{id:'model',ko:'차량명',en:'Model',t:'t'},{id:'year',ko:'연식',en:'Model year',t:'t'},
+ {id:'km',ko:'주행거리',en:'Mileage',t:'n',w:1,u:['km','km']},{id:'vin',ko:'차대번호',en:'VIN',t:'t'},
+ {id:'fuel',ko:'사용연료',en:'Fuel',t:'r',o:['gas','diesel','lpg','hev','ev']},{id:'drv',ko:'구동방식',en:'Drive',t:'r',o:['w2','w4']},
+ {id:'tm',ko:'변속기 종류',en:'Transmission',t:'r',o:['at','mt']},{id:'keys',ko:'차키수량',en:'Keys',t:'keys'},
+ {id:'date',ko:'점검일',en:'Inspection date',t:'date'},{id:'insp',ko:'점검자',en:'Inspector',t:'t'}];
+const KEYS = [['kn','일반키','Regular'],['ks','스마트키','Smart'],['kc','카드키','Card']];
+const INT = [['ws','앞유리','Windshield',['chip','mchip','crack']],['dash','계기판 경고등','Dashboard warning lights',['ecu','etc']],
+ ['hud','헤드업 디스플레이','Head-up display',['none','bad','after']],['ghost','고스트도어','Soft-close doors',['none','bad']],['sun','썬루프','Sunroof',['none','bad']],
+ ['nav','네비게이션 / 후방','Navigation / rear camera',['none','after','bad']],['ac','에어컨 공조 (앞/뒤)','A/C & climate (front/rear)',['bad']],
+ ['lamp','실내등 앞/뒤','Interior lights (front/rear)',['bad']],['seat','시트 및 기능','Seats & functions',['broken','stain','worn']],
+ ['trim','내장재 / 헤드라이너','Interior trim / headliner',['broken','stain','repl']],['curt','커튼 블라인드 (도어/뒤유리)','Sunshades (doors / rear glass)',['bad']]];
+const EXT = [['mir','사이드미러','Side mirrors',['scratch','broken','malf']],['lift','본넷/트렁크 리프트','Hood / trunk lift',['bad']],
+ ['hl','램프 - 헤드/리어','Head / tail lamps',['scratch','broken','white']],['fog','안개등 (앞/뒤)','Fog lamps (front/rear)',['scratch','broken','white']],
+ ['grill','그릴','Grille',['scratch','broken','discol']],['mold','몰딩','Moldings',['scratch','broken','discol']],['garn','가니쉬','Garnish',['scratch','broken']],
+ ['bump','범퍼/에어댐 (앞/뒤)','Bumper / air dam (front/rear)',['scratch','broken','discol']],['eng','엔진부식 정도','Engine bay corrosion',['minor','mid','severe'],1],
+ ['under','하부 녹/부식','Underbody rust / corrosion',['minor','mid','severe'],1],['muff','소음기 부식','Muffler corrosion',['minor','mid','severe'],1],
+ ['fin','외장상태','Exterior finish',['wrap','sticker','paint']]];
+const GMF = ['good','minor','fix'], GMS = ['good','minor','severe'];
+const SUM = [
+ {ko:'사고',en:'Accident history',f:[{id:'acc',t:'r',o:['noacc','simple','acc']}]},
+ {ko:'외판',en:'Body panels',auto:1},
+ {ko:'주요골격',en:'Main frame',frame:1},
+ {ko:'조향 (핸들) 유격/이음',en:'Steering play / noise',f:[{id:'st',t:'r',o:GMF},{id:'stT',t:'t',ph:['불량 내용','Details']}]},
+ {ko:'엔진 누유/누수',en:'Engine oil / coolant leak',f:[{id:'lk',t:'r',o:GMF},{id:'lkT',t:'t',ph:['누유/누수 부위','Location']}]},
+ {ko:'변속기 충격',en:'Transmission shift shock',f:[{id:'ts',t:'r',o:GMF},{id:'tsT',t:'t',ph:['충격시 내용','Details']}]},
+ {ko:'엔진 부조',en:'Engine rough idle',f:[{id:'mf',t:'r',o:GMF},{id:'mfT',t:'t',ph:['부조시 내용','Details']}]},
+ {ko:'엔진 소음',en:'Engine noise',f:[{id:'ns',t:'r',o:GMF},{id:'nsT',t:'t',ph:['소음시 내용','Details']}]},
+ {ko:'블로바이가스',en:'Blow-by gas',f:[{id:'bb',t:'r',o:GMS}]},
+ {ko:'핸들기어(MDPS) 누유',en:'Steering gear (MDPS) leak',f:[{id:'md',t:'r',o:GMS}]},
+ {ko:'시동상태',en:'Engine start',f:[{id:'sa',t:'r',o:['good','bad']},{id:'saT',t:'t',ph:['불량시 내용','Details']}]},
+ {ko:'실내상태',en:'Interior condition',f:[{id:'rm',t:'r',o:['good','smell','clean']},{id:'rmT',t:'t',ph:['냄새 내용','Details']}]},
+ {ko:'휠 기스',en:'Wheel scuffs',f:[{id:'wh',t:'n',u:['개','pcs']}]},
+ {ko:'타이어 잔존량',en:'Tire tread remaining',tire:1}];
+const TIRES = [['tfl','앞 좌','Front L'],['tfr','앞 우','Front R'],['trl','뒤 좌','Rear L'],['trr','뒤 우','Rear R']];
+const HC = {X:['교환','Exchanged'],W:['판금/용접','Sheet metal / weld'],M:['탈부착','Removed & refitted'],P:['도장','Repainted']};
+const NC = {A:['긁힘/문콕/붓터치','Scratch / door ding / touch-up'],U:['요철','Dent'],C:['부식','Corrosion'],S:['녹','Rust'],T:['깨짐','Crack']};
+const FILL = {X:'#f7c9c9',W:'#fcd7ae',P:'#f8eaa5',M:'#d3e2fa'};
+const STD = {1:[85,135,160,260,261],2:[165,235,260,360,361]};
+const W = 170;
+const mir = d => d.replace(/([MLHVQAZ])([^MLHVQAZ]*)/g, (m, c, a) => {
+ const n = a.trim() ? a.trim().split(/[\s,]+/).map(Number) : [];
+ if (c === 'Z' || c === 'V') return c + a;
+ if (c === 'H') return 'H' + (W - n[0]) + ' ';
+ if (c === 'A') { n[4] = 1 - n[4]; n[5] = W - n[5]; return 'A' + n.join(' ') + ' '; }
+ for (let i = 0; i < n.length; i += 2) n[i] = W - n[i];
+ return c + n.join(' ') + ' ';
+});
+const SIDE = [
+ ['f','앞휀더','front fender','M44,24 Q30,30 30,50 V66 A26,26 0 0 1 30,118 V132 H96 V60 Q90,30 44,24 Z',72,98],
+ ['fd','앞도어','front door','M30,136 H96 V232 H30 Z',63,184],
+ ['rd','뒤도어','rear door','M30,236 H96 V300 H30 Z',63,268],
+ ['q','쿼터패널','quarter panel','M30,304 H96 V360 Q96,380 70,382 H44 Q30,380 30,368 V356 A26,26 0 0 0 30,304 Z',74,342],
+ ['s','사이드실','side sill','M12,122 H28 V300 H12 Z',20,211]];
+const PN = [];
+const add = (id, ko, en, v, d, x, y, th, fr, rot) => PN.push({id, ko, en, v, d, x, y, th, fr, rot});
+SIDE.forEach(s => add('l'+s[0], '좌 '+s[1], 'L '+s[2], 'L', s[3], s[4], s[5], 1, 0, s[0]==='s'));
+[['fb','앞범퍼','Front bumper','M34,44 Q34,20 60,20 H110 Q136,20 136,44 Z',85,34,0],
+ ['hood','후드','Hood','M42,48 H128 L132,128 H38 Z',85,88,1],
+ ['roof','루프','Roof','M50,166 H120 V264 H50 Z',85,215,1],
+ ['trunk','트렁크','Trunk lid','M38,298 H132 L128,350 H42 Z',85,324,1],
+ ['rb','뒤범퍼','Rear bumper','M34,354 H136 Q136,380 110,380 H60 Q34,380 34,354 Z',85,369,0]].forEach(t => add(t[0], t[1], t[2], 'T', t[3], t[4], t[5], t[6], 0));
+SIDE.forEach(s => add('r'+s[0], '우 '+s[1], 'R '+s[2], 'R', mir(s[3]), W - s[4], s[5], 1, 0, s[0]==='s'));
+const fc = (id, ko, en, d, x, y) => add(id, ko, en, 'F', d, x, y, 0, 1);
+const fp2 = (id, ko, en, d, x, y) => { fc(id+'L', '좌 '+ko, 'L '+en, d, x, y); fc(id+'R', '우 '+ko, 'R '+en, mir(d), W - x, y); };
+fc('fp','프론트패널','Front panel','M36,24 H134 V40 H36 Z',85,32);
+fc('cm','크로스멤버','Cross member','M36,45 H134 V57 H36 Z',85,51);
+fp2('ip','인사이드패널','inside panel','M18,62 H44 V116 H18 Z',31,89);
+fp2('fwh','앞휠하우스','front wheel house','M18,120 H44 V166 H18 Z',31,143);
+fp2('fsm','앞사이드멤버','front side member','M49,62 H67 V170 H49 Z',58,116);
+fc('dash','대쉬패널','Dash panel','M36,175 H134 V190 H36 Z',85,183);
+fc('floor','플로어패널','Floor panel','M49,196 H121 V280 H49 Z',85,238);
+fp2('rwh','뒤휠하우스','rear wheel house','M18,286 H44 V332 H18 Z',31,309);
+fp2('rsm','뒤사이드멤버','rear side member','M49,286 H67 V356 H49 Z',58,321);
+fc('tf','트렁크플로어','Trunk floor','M72,286 H98 V356 H72 Z',85,321);
+fc('rp','리어패널','Rear panel','M36,362 H134 V378 H36 Z',85,370);
+const ORDER = PN.map(p => p.id);
+const VIEWS = [['L','좌측','Left side'],['T','상단','Top'],['F','주요골격','Main frame'],['R','우측','Right side']];
+const pn = p => L === 'en' ? p.en : p.ko;
+const P = id => { const p = S.p[id] || (S.p[id] = {}); p.h = p.h || []; p.n = p.n || []; if (p.t == null) p.t = ''; return p; };
+const cls = t => { if (!t) return ''; const s = STD[S.std] || STD[1]; return +t >= s[4] ? 'W' : +t >= s[2] ? 'P' : 'ok'; };
+const clsTag = t => { const c = cls(t); return c === 'W' ? `<span class="tag o">${T('판금 수준','Sheet-metal level')}</span>` : c === 'P' ? `<span class="tag y">${T('도장 수준','Repaint level')}</span>` : c === 'ok' ? `<span class="tag g">${T('정상','Factory')}</span>` : ''; };
+const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const fdate = v => /^\d{4}-\d\d-\d\d$/.test(v||'') ? v.split('-').reverse().join(' / ') : (v||'');
+const fnum = v => v !== '' && isFinite(+v) ? (+v).toLocaleString('en-US') : v;
+const has = v => Array.isArray(v) ? v.length > 0 : v != null && v !== '';
+
+function fld(x) {
+ const v = S.f[x.id];
+ if (MODE === 'edit') {
+  if (x.t === 'r' || x.t === 'm') return x.o.map(o => `<button type="button" class="chip ${tone(o)}" data-f="${x.id}" data-v="${o}"${x.t==='m'?' data-m="1"':''} aria-pressed="${x.t==='m' ? (v||[]).includes(o) : v===o}">${esc(tl(O[o]))}</button>`).join('');
+  if (x.t === 'n') return `<input class="n${x.w?' w':''}" inputmode="numeric" data-i="${x.id}" value="${esc(v??'')}" aria-label="${esc(x.en||x.id)}">${x.u?`<span class="u">${tl(x.u)}</span>`:''}`;
+  if (x.t === 'date') return `<input type="date" data-i="${x.id}" value="${esc(v||'')}">`;
+  return `<input data-i="${x.id}" value="${esc(v||'')}" placeholder="${x.ph?esc(tl(x.ph)):''}">`;
+ }
+ if (x.t === 'r') return v ? tag(v) : (x.ph ? '' : '<span class="dash">—</span>');
+ if (x.t === 'm') return has(v) ? v.map(tag).join('') : '';
+ if (x.t === 'n') return has(v) ? `<b>${esc(fnum(v))}</b> <span class="u">${x.u?tl(x.u):''}</span>` : '<span class="dash">—</span>';
+ if (x.t === 'date') return v ? `<b>${esc(fdate(v))}</b>` : '<span class="dash">—</span>';
+ if (x.ph) return v ? `<span class="txt">${esc(v)}</span>` : '';
+ return v ? `<b>${esc(v)}</b>` : '<span class="dash">—</span>';
+}
+const smallNums = (list, unit) => list.map(([id,ko,en]) => MODE === 'edit'
+ ? `<span class="u">${L==='en'?en:ko}</span><input class="n" inputmode="numeric" data-i="${id}" value="${esc(S.f[id]??'')}">${unit}`
+ : `<span class="u">${L==='en'?en:ko}</span> <b>${has(S.f[id])?esc(S.f[id]):'—'}</b>${has(S.f[id])?unit:''}`).join(' &nbsp;');
+
+function logo() {
+ return LOGO ? `<img src="${esc(LOGO)}" alt="AutoMatch">` :
+ `<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="none" stroke="#fff" stroke-width="2.2"/><path d="M8 24 L15 11 L19 18 L21.5 14 L26 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg>AUTOMATCH`;
+}
+function deco(v) {
+ const st = 'stroke="#6f7f95" stroke-width="1.2"';
+ if (v === 'T') return `<rect x="12" y="62" width="12" height="50" rx="5" fill="#2b3442"/><rect x="146" y="62" width="12" height="50" rx="5" fill="#2b3442"/><rect x="12" y="290" width="12" height="50" rx="5" fill="#2b3442"/><rect x="146" y="290" width="12" height="50" rx="5" fill="#2b3442"/>
+  <rect x="22" y="28" width="126" height="346" rx="22" fill="#eef2f7" ${st}/><path d="M22,136 L10,140 L11,152 L22,150 Z M148,136 L160,140 L159,152 L148,150 Z" fill="#dfe6ef" ${st}/>
+  <path d="M44,134 H126 L120,162 H50 Z M50,268 H120 L126,294 H44 Z" fill="#cbd8e8" ${st}/>`;
+ if (v === 'F') return `<rect x="10" y="16" width="150" height="370" rx="24" fill="#f6f8fb" stroke="#9aa6b5" stroke-dasharray="4 3"/>`;
+ const g = `M96,58 L140,128 V304 L96,366 Z`, gl = `M100,72 L132,132 H100 Z M100,138 H132 V230 H100 Z M100,236 H132 V298 H100 Z M100,304 H132 L100,354 Z`;
+ const cx = v === 'R' ? W - 30 : 30, f = v === 'R' ? mir : d => d;
+ return `<circle cx="${cx}" cy="92" r="22" fill="#2b3442"/><circle cx="${cx}" cy="92" r="9" fill="#8d99a8"/><circle cx="${cx}" cy="330" r="22" fill="#2b3442"/><circle cx="${cx}" cy="330" r="9" fill="#8d99a8"/>
+  <path d="${f(g)}" fill="#eef2f7" ${st}/><path d="${f(gl)}" fill="#cbd8e8" ${st}/>`;
+}
+function pfill(p) {
+ const h = (S.p[p.id] || {}).h || [], n = (S.p[p.id] || {}).n || [];
+ if (p.fr) return h.length ? '#f7c9c9' : n.length ? '#fcefcc' : '#fff';
+ return h.includes('X') ? FILL.X : h.includes('W') ? FILL.W : h.includes('P') ? FILL.P : h.includes('M') ? FILL.M : '#fff';
+}
+function lbl(p) {
+ const d = S.p[p.id] || {}, codes = [...(d.h||[]), ...(d.n||[])].join('·');
+ let s = '';
+ if (p.th && (d.t || MODE === 'edit')) {
+  const c = cls(d.t), col = c === 'W' ? '#b14f00' : c === 'P' ? '#8a6a00' : '#16202e';
+  const box = `<rect x="${p.x-19}" y="${p.y-12}" width="38" height="22" rx="3" fill="#fff" stroke="${d.t ? '#6f7f95' : '#b0bccb'}"${d.t ? '' : ' stroke-dasharray="3 2"'}/>` +
+   (d.t ? `<text x="${p.x}" y="${p.y+5}" text-anchor="middle" font-size="15" font-weight="900" fill="${col}">${esc(d.t)}</text>` : '');
+  s += p.rot ? `<g transform="rotate(-90 ${p.x} ${p.y})">${box}</g>` : box;
+ }
+ if (codes) s += `<text x="${p.x}" y="${p.th ? p.y + (p.rot ? 32 : 25) : p.y + 5}" text-anchor="middle" font-size="12.5" font-weight="900" fill="#a51f1f">${esc(codes)}</text>`;
+ return s;
+}
+function views() {
+ return VIEWS.map(([v, ko, en]) => { const ps = PN.filter(p => p.v === v);
+  return `<figure class="vw"><svg viewBox="0 -20 170 412" role="img" aria-label="${T(ko,en)}"><text x="85" y="-6" text-anchor="middle" font-size="12" fill="#5d6b7e">▲ ${T('앞','FRONT')}</text>${deco(v)}
+  ${ps.map(p => `<path d="${p.d}" class="pn${SEL===p.id?' on':''}" fill="${pfill(p)}"${MODE==='edit'?` data-sel="${p.id}"`:''}><title>${esc(pn(p))}</title></path>`).join('')}
+  <g pointer-events="none">${ps.map(lbl).join('')}</g></svg><figcaption>${T(ko,en)}</figcaption></figure>`; }).join('');
+}
+function editor() {
+ if (!SEL) return `<div class="ped start"><button type="button" class="btn main" data-step="1">${T('외판 입력 시작 ▶','Start panel entry ▶')}</button><span class="hint">${T('또는 도면에서 부위를 누르세요','or tap a panel on the drawing')}</span></div>`;
+ const p = PN.find(x => x.id === SEL), d = P(SEL), i = ORDER.indexOf(SEL);
+ const opts = VIEWS.map(([v,ko,en]) => `<optgroup label="${T(ko,en)}">${PN.filter(x => x.v === v).map(x => `<option value="${x.id}"${x.id===SEL?' selected':''}>${esc(pn(x))}</option>`).join('')}</optgroup>`).join('');
+ return `<div class="ped" id="ped"><div class="pedtop"><button type="button" class="btn dark sq" data-step="-1" aria-label="Previous">◀</button><select data-jump aria-label="Panel">${opts}</select><button type="button" class="btn dark sq" data-step="1" aria-label="Next">▶</button><span class="u">${i+1}/${ORDER.length}</span></div>
+  ${p.th ? `<label class="thk">${T('도막수치','Thickness')} <input class="n big" inputmode="numeric" enterkeyhint="next" data-pt="1" value="${esc(d.t)}"> μm <span id="pcls">${clsTag(d.t)}</span></label>` : ''}
+  <div>① ${Object.entries(HC).map(([k,v]) => `<button type="button" class="chip sm r" data-pc="${SEL}" data-k="h" data-v="${k}" aria-pressed="${d.h.includes(k)}">${k} ${tl(v)}</button>`).join('')}</div>
+  <div>② ${Object.entries(NC).map(([k,v]) => `<button type="button" class="chip sm y" data-pc="${SEL}" data-k="n" data-v="${k}" aria-pressed="${d.n.includes(k)}">${k} ${tl(v)}</button>`).join('')}</div>
+  ${p.fr ? `<p class="mute">${T('골격에 X/W가 있으면 사고차입니다','Any X/W on the main frame = accident vehicle')}</p>` : ''}
+  <button type="button" class="btn main" data-step="1">${T('다음 부위 ▶','Next panel ▶')}</button></div>`;
+}
+function carSec() {
+ const stdTxt = n => { const a = STD[n]; return `${T('기준','Std ')}${n}: ${T('기본','Factory')} ${a[0]}–${a[1]} · P ${a[2]}–${a[3]} · W ${a[4]}+`; };
+ let h = `<h2>${T('외판 · 주요골격','Body panels · main frame')} <small>${T('도막수치 μm','paint thickness μm')}</small></h2><div class="leg">
+  <div><b>① ${T('수리이력','Repair history')}</b> ${Object.entries(HC).map(([k,v])=>`<span class="cd">${k}</span> ${tl(v)}`).join(' ')}</div>
+  <div><b>② ${T('수리필요','Needs repair')}</b> ${Object.entries(NC).map(([k,v])=>`<span class="cd">${k}</span> ${tl(v)}`).join(' ')}</div>
+  <div><b>③ ${T('도막수치','Thickness')}</b> ${MODE==='edit' ? [1,2].map(n=>`<button type="button" class="chip sm" data-std="${n}" aria-pressed="${S.std===n}">${stdTxt(n)}</button>`).join(' ') : stdTxt(S.std||1)}</div></div>
+  <div class="sw"><span><i style="background:${FILL.X}"></i>X ${tl(HC.X)}</span><span><i style="background:${FILL.W}"></i>W ${tl(HC.W)}</span><span><i style="background:${FILL.P}"></i>P ${tl(HC.P)}</span><span><i style="background:${FILL.M}"></i>M ${tl(HC.M)}</span></div>
+  <div class="views" id="views">${views()}</div>`;
+ if (MODE === 'edit') return h + editor();
+ const c = counts();
+ h += c.frame.length ? `<p class="frbad">⚠ ${T('주요골격 손상 — 사고차','Main frame damage — accident vehicle')}: ${c.frame.map(p=>esc(pn(p))).join(', ')}</p>` : `<p class="okline">✓ ${T('주요골격 이상 없음','Main frame: no damage')}</p>`;
+ const rows = PN.filter(p => { const d = S.p[p.id] || {}; return has(d.h) || has(d.n) || ['P','W'].includes(cls(d.t)); });
+ if (!rows.length) return h + `<p class="okline">✓ ${T('모든 외판 이상 없음','No findings on any body panel')}</p>`;
+ return h + `<table class="ptab"><thead><tr><th>${T('부위','Panel')}</th><th class="r">μm</th><th>${T('수리이력','History')}</th><th>${T('수리필요','Needs repair')}</th></tr></thead><tbody>${rows.map(p => { const d = P(p.id);
+   return `<tr><td>${esc(pn(p))}</td><td class="r">${d.t?esc(d.t):'—'} ${['P','W'].includes(cls(d.t))?clsTag(d.t):''}</td><td>${d.h.map(k=>`<span class="tag ${k==='X'||p.fr?'r':k==='W'?'o':'y'}">${k} ${tl(HC[k])}</span>`).join(' ')}</td><td>${d.n.map(k=>`<span class="tag y">${k} ${tl(NC[k])}</span>`).join(' ')}</td></tr>`; }).join('')}</tbody></table>
+   <p class="mute">${T('표에 없는 부위: 이상 없음','Parts not listed: no findings')}</p>`;
+}
+function checklist(list, ko, en, sub) {
+ return `<h2>${T(ko,en)} <small>${MODE==='edit'?T(sub[0],sub[1]):''}</small></h2><table>${list.map((it,i) => {
+  const x = {id:it[0], t:it[4]?'r':'m', o:it[3]}, v = S.f[x.id];
+  const val = MODE === 'edit' || has(v) ? fld(x) : `<span class="tag g">${T('이상없음','OK')}</span>`;
+  return `<tr><th>${i+1}. ${esc(L==='en'?it[2]:it[1])}</th><td>${val}</td></tr>`; }).join('')}</table>`;
+}
+const counts = () => { const b = PN.filter(p => !p.fr); return {need: b.filter(p => P(p.id).n.length), ex: b.filter(p => P(p.id).h.includes('X')).length, wl: b.filter(p => P(p.id).h.includes('W')).length, frame: PN.filter(p => p.fr && (P(p.id).h.length || P(p.id).n.length))}; };
+const frameStat = () => { const f = counts().frame; return f.length ? `<span class="tag r">${T('손상 — 사고차','Damaged — accident vehicle')}</span><span class="txt">${f.map(p=>esc(pn(p))).join(', ')}</span>` : `<span class="tag g">${T('이상없음','No damage')}</span>`; };
+function outer() {
+ const c = counts(), codes = [...new Set(c.need.flatMap(p => P(p.id).n))];
+ return `<span>${T('수리필요 총','Needs repair:')} <b>${c.need.length}</b>${T('판',' panel(s)')}</span>${codes.map(k=>`<span class="tag y">${k} ${tl(NC[k])}</span>`).join('')}<span class="u">· ${tl(HC.X)} <b>${c.ex}</b> · ${tl(HC.W)} <b>${c.wl}</b> ${MODE==='edit'?T('(도면에서 자동 계산)','(auto from diagram)'):''}</span>`;
+}
+function sheet() {
+ const f = S.f, c = counts();
+ let h = `<header class="band"><div class="logo">${logo()}</div><h1>${T('차량 진단평가지','Vehicle Inspection Report')}<small>${T('Vehicle Inspection Report','차량 진단평가지')}${f.date?' · '+esc(fdate(f.date)):''}</small></h1></header>
+ <div class="note">※ ${T('W(판금)는 X(교환)와 동일한 사고이력으로 간주함','W (sheet metal) is treated as accident history, the same as X (exchanged)')}${MODE==='edit'?`<button type="button" data-act="sample" class="noprint">${T('예시 채우기','Fill sample')}</button>`:''}</div>`;
+ if (MODE === 'view') h += `<div class="key"><div><small>${T('차량','Vehicle')}</small><b>${esc(f.model||'—')} ${esc(f.year||'')}</b></div><div><small>${T('주행거리','Mileage')}</small><b>${has(f.km)?esc(fnum(f.km))+' km':'—'}</b></div><div><small>${T('사고','Accident')}</small>${f.acc?tag(f.acc):'<b>—</b>'}</div><div><small>${T('외판 교환 / 판금','Exchanged / sheet metal')}</small><b>X ${c.ex} · W ${c.wl}</b></div><div><small>${T('주요골격','Main frame')}</small>${c.frame.length?`<span class="tag r">${T('손상','Damaged')}</span>`:`<span class="tag g">${T('이상없음','No damage')}</span>`}</div></div>`;
+ h += `<section class="sec"><h2>${T('차량 정보','Vehicle')}</h2><div class="grid">${INFO.map(x => `<div class="cell"><b>${L==='en'?x.en:x.ko}</b><div>${x.t==='keys'?smallNums(KEYS,T('개','')):fld(x)}</div></div>`).join('')}</div></section>
+ <section class="sec">${carSec()}</section><div class="two"><section class="sec">${checklist(INT,'내부상태','Interior',['불량시 체크','check if defective'])}</section><section class="sec">${checklist(EXT,'외부상태','Exterior',['불량시 체크','check if defective'])}</section></div>
+ <section class="sec"><h2>${T('평가 요약','Evaluation summary')}</h2><table class="sum">${SUM.map(r => `<tr><th>${L==='en'?r.en:r.ko}</th><td>${r.auto?outer():r.frame?frameStat():r.tire?smallNums(TIRES,'%'):r.f.map(fld).join('')}</td></tr>`).join('')}</table></section>
+ <section class="sec"><h2>${T('비고','Remarks')}</h2>`;
+ if (MODE === 'edit') h += `<textarea data-i="rmk" placeholder="${T('점검자 비고 (한국어)','Inspector remarks (Korean)')}">${esc(f.rmk||'')}</textarea>
+  <div style="height:8px"></div><textarea data-i="rmkEn" placeholder="${T('영문 비고 — 바이어용 (Noor 작성)','English remarks for the buyer (Noor)')}">${esc(f.rmkEn||'')}</textarea>`;
+ else { const t = L === 'en' ? (f.rmkEn || f.rmk) : f.rmk; h += t ? `<p class="rmk">${esc(t)}</p>${L==='en'&&!f.rmkEn?'<p class="mute">(Inspector\'s original note in Korean)</p>':''}` : '<span class="dash">—</span>'; }
+ h += `</section>`;
+ if (MODE === 'view' && !BUYER) h += `<section class="sec share"><h2>${T('보고서 링크','Report links')} <small>${T('링크 안에 보고서 전체가 들어 있습니다','the link carries the whole report')}</small></h2>
+  <label for="lkEn">${T('바이어용 영문 링크','Buyer link (English)')}</label><div class="lk"><input id="lkEn" readonly><button type="button" class="btn dark" data-copy="lkEn">${T('복사','Copy')}</button></div>
+  <label for="lkKo">${T('한국어 링크','Korean link')}</label><div class="lk"><input id="lkKo" readonly><button type="button" class="btn dark" data-copy="lkKo">${T('복사','Copy')}</button></div>
+  <div class="sbtns"><button type="button" class="btn kk" data-act="kakao">${T('카카오톡으로 보내기 (점검자 → Noor)','Share on KakaoTalk (inspector → Noor)')}</button>
+  <a id="wa" class="btn wa" href="https://wa.me/" target="_blank" rel="noopener">${T('WhatsApp으로 바이어에게 보내기 (영문)','Send to buyer on WhatsApp (English)')}</a></div></section>`;
+ h += `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span><span>${T('담당','Sales')}: <b>Noor</b> · WhatsApp <a href="https://wa.me/${WA}" target="_blank" rel="noopener">${WA_TXT}</a></span></footer>`;
+ return h;
+}
+function bar() {
+ const lang = `<span class="seg">${['ko','en'].map(l=>`<button type="button" data-lang="${l}" aria-pressed="${L===l}">${l==='ko'?'한':'EN'}</button>`).join('')}</span>`;
+ if (MODE === 'edit') return `${lang}<button type="button" class="btn ghost" data-act="new">${armed?T('한 번 더 누르면 초기화','Tap again to clear'):T('새 점검','New')}</button><button type="button" class="btn main" data-act="done">${T('보고서 완료 →','Finish report →')}</button>`;
+ return `${lang}${BUYER?'':`<button type="button" class="btn ghost" data-act="edit">${T('수정','Edit')}</button>`}<button type="button" class="btn main" data-act="print">${T('PDF 저장 / 인쇄','Save PDF / Print')}</button>`;
+}
+function render() {
+ document.documentElement.lang = L;
+ $('#app').className = 'sheet ' + MODE;
+ $('#app').innerHTML = sheet(); $('#bar').innerHTML = bar();
+ if (MODE === 'view' && !BUYER) links();
+}
+
+/* ---- link encoding: whole report inside the URL ---- */
+const b64 = u8 => { let s = ''; for (const c of u8) s += String.fromCharCode(c); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+const unb64 = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+function prune(s) {
+ const f = {}; for (const [k,v] of Object.entries(s.f)) if (has(v)) f[k] = v;
+ const p = {}; for (const [k,v] of Object.entries(s.p)) { const o = {}; if (v.t) o.t = v.t; if (has(v.h)) o.h = v.h; if (has(v.n)) o.n = v.n; if (Object.keys(o).length) p[k] = o; }
+ return {f, p, std:s.std};
+}
+async function enc(o) {
+ const s = JSON.stringify(o);
+ try { const st = new Blob([s]).stream().pipeThrough(new CompressionStream('deflate-raw')); return 'z' + b64(new Uint8Array(await new Response(st).arrayBuffer())); }
+ catch (e) { return 'j' + b64(new TextEncoder().encode(s)); }
+}
+async function dec(p) {
+ const u = unb64(p.slice(1));
+ if (p[0] === 'z') { const st = new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return JSON.parse(await new Response(st).text()); }
+ return JSON.parse(new TextDecoder().decode(u));
+}
+async function links() {
+ const p = await enc(prune(S)), base = PUBLIC_URL || location.href.split('#')[0];
+ const en = base + '#enb.' + p, ko = base + '#ko.' + p;
+ if (!$('#lkEn')) return;
+ $('#lkEn').value = en; $('#lkKo').value = ko;
+ $('#wa').href = 'https://wa.me/?text=' + encodeURIComponent(`AutoMatch Korea — Vehicle Inspection Report\n${S.f.model||''} ${S.f.year||''}\n${en}`);
+}
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1600); }
+function copy(id, msg) {
+ const i = $('#' + id); if (!i || !i.value) return;
+ const ok = () => toast(msg || T('복사됨','Copied'));
+ try { navigator.clipboard.writeText(i.value).then(ok, () => { i.select(); toast(T('선택됨 — 길게 눌러 복사','Selected — copy manually')); }); }
+ catch (e) { i.select(); }
+}
+const save = () => { try { localStorage.setItem('am_insp', JSON.stringify(S)); } catch (e) {} };
+const SAMPLE = {std:1,f:{plate:'12가 3456',model:'쏘렌토 MQ4',year:'2021',km:'36270',vin:'KNARH81BBMS000000',fuel:'diesel',drv:'w4',tm:'at',ks:'2',date:today(),insp:'김점검',
+ acc:'noacc',st:'good',lk:'good',ts:'good',mf:'good',ns:'good',bb:'good',md:'good',sa:'good',rm:'good',wh:'1',tfl:'70',tfr:'70',trl:'70',trr:'70',garn:['scratch'],
+ rmk:'외판 4판 / 1판 복원필요 (가니쉬 교체)\n휠기스 1개',rmkEn:'4 panels with light marks, 1 needs touch-up (garnish replacement).\n1 wheel scuff.'},
+ p:{lf:{t:'124'},lfd:{t:'122',n:['A']},lrd:{t:'134'},lq:{t:'122',n:['A']},hood:{t:'114'},roof:{t:'120'},trunk:{t:'121'},rf:{t:'125',n:['A']},rfd:{t:'119'},rrd:{t:'139',n:['A']},rq:{t:'118'},ls:{t:'117'},rs:{t:'120'}}};
+function act(a) {
+ if (a === 'done') { MODE = 'view'; BUYER = false; SEL = null; render(); scrollTo(0,0); }
+ else if (a === 'edit') { MODE = 'edit'; BUYER = false; render(); }
+ else if (a === 'kakao') { const url = $('#lkKo') && $('#lkKo').value; if (!url) return; const text = `[AutoMatch 진단평가지] ${S.f.plate||''} ${S.f.model||''}`;
+  if (navigator.share) navigator.share({title:text, text, url}).catch(() => {}); else copy('lkKo', T('링크 복사됨 — 카카오톡에 붙여넣기','Link copied — paste it in KakaoTalk')); }
+ else if (a === 'print') { try { print(); } catch (e) {} }
+ else if (a === 'sample') { S = JSON.parse(JSON.stringify(SAMPLE)); SEL = null; save(); render(); }
+ else if (a === 'new') { if (!armed) { armed = true; $('#bar').innerHTML = bar(); setTimeout(() => { armed = false; if (MODE==='edit') $('#bar').innerHTML = bar(); }, 4000); return; }
+  armed = false; S = {f:{date:today()}, p:{}, std:1}; SEL = null; save(); render(); scrollTo(0,0); }
+}
+document.addEventListener('click', e => {
+ const b = e.target.closest('[data-f],[data-sel],[data-pc],[data-std],[data-act],[data-lang],[data-copy],[data-step]');
+ if (!b) return; const d = b.dataset;
+ if (d.lang) { L = d.lang; render(); return; }
+ if (d.copy) { copy(d.copy); return; }
+ if (d.act) { act(d.act); return; }
+ if (MODE !== 'edit') return;
+ if (d.step) { const n = ORDER.length, i = ORDER.indexOf(SEL); SEL = ORDER[SEL ? (i + (+d.step) + n) % n : 0]; keep(); focusEd(); return; }
+ if (d.sel) { SEL = d.sel; keep(); focusEd(); return; }
+ if (d.f) { const id = d.f, v = d.v; if (d.m) { const a = S.f[id] || []; S.f[id] = a.includes(v) ? a.filter(x => x !== v) : [...a, v]; } else S.f[id] = S.f[id] === v ? '' : v; }
+ else if (d.pc) { const p = P(d.pc); p[d.k] = p[d.k].includes(d.v) ? p[d.k].filter(x => x !== d.v) : [...p[d.k], d.v]; }
+ else if (d.std) S.std = +d.std;
+ save(); keep();
+});
+function keep() { const y = scrollY; render(); scrollTo(0, y); }
+function focusEd() { const e = $('#ped'); if (!e) return; const r = e.getBoundingClientRect(); if (r.bottom > innerHeight - 70) scrollBy(0, r.bottom - innerHeight + 80); const i = e.querySelector('[data-pt]'); if (i) { i.focus({preventScroll:true}); i.select(); } }
+document.addEventListener('change', e => { const t = e.target; if (t.dataset.jump !== undefined && MODE === 'edit') { SEL = t.value; keep(); focusEd(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.pt) { e.preventDefault(); const n = ORDER.length; SEL = ORDER[(ORDER.indexOf(SEL) + 1) % n]; keep(); focusEd(); } });
+document.addEventListener('input', e => {
+ const t = e.target; if (MODE !== 'edit') return;
+ if (t.dataset.i) { S.f[t.dataset.i] = t.value; save(); }
+ else if (t.dataset.pt && SEL) { P(SEL).t = t.value.replace(/\D/g,''); save(); $('#views').innerHTML = views(); const c = $('#pcls'); if (c) c.innerHTML = clsTag(P(SEL).t); }
+});
+(async () => {
+ const m = location.hash.match(/^#(ko|en)(b?)\.(.+)$/);
+ if (m) {
+  try { S = Object.assign({f:{}, p:{}, std:1}, await dec(m[3])); L = m[1]; BUYER = !!m[2]; MODE = 'view'; render(); return; }
+  catch (e) { toast('Link could not be read'); }
+ }
+ try { const d = JSON.parse(localStorage.getItem('am_insp') || 'null'); if (d) S = Object.assign({f:{}, p:{}, std:1}, d); } catch (e) {}
+ if (!S.f.date) S.f.date = today();
+ render();
+})();
+}
+</script>
+</body></html>
