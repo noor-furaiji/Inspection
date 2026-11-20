@@ -102,7 +102,6 @@ td{padding:6px 0}
 /* ===== SETTINGS ===== */
 const LOGO = '';            // optional: logo image URL or data: URI (white logo for the navy band)
 const PUBLIC_URL = '';      // optional: full URL of this page once hosted, e.g. https://noorkaraba-web.github.io/inspection/
-const WA = '821051899201', WA_TXT = '+82 10-5189-9201';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -316,15 +315,15 @@ function sheet() {
  <section class="sec"><h2>${T('평가 요약','Evaluation summary')}</h2><table class="sum">${SUM.map(r => `<tr><th>${L==='en'?r.en:r.ko}</th><td>${r.auto?outer():r.frame?frameStat():r.tire?smallNums(TIRES,'%'):r.f.map(fld).join('')}</td></tr>`).join('')}</table></section>
  <section class="sec"><h2>${T('비고','Remarks')}</h2>`;
  if (MODE === 'edit') h += `<textarea data-i="rmk" placeholder="${T('점검자 비고 (한국어)','Inspector remarks (Korean)')}">${esc(f.rmk||'')}</textarea>
-  <div style="height:8px"></div><textarea data-i="rmkEn" placeholder="${T('영문 비고 — 바이어용 (Noor 작성)','English remarks for the buyer (Noor)')}">${esc(f.rmkEn||'')}</textarea>`;
+  <div style="height:8px"></div><textarea data-i="rmkEn" placeholder="${T('영문 비고 — 바이어용 (AutoMatch 작성)','English remarks for the buyer (AutoMatch)')}">${esc(f.rmkEn||'')}</textarea>`;
  else { const t = L === 'en' ? (f.rmkEn || f.rmk) : f.rmk; h += t ? `<p class="rmk">${esc(t)}</p>${L==='en'&&!f.rmkEn?'<p class="mute">(Inspector\'s original note in Korean)</p>':''}` : '<span class="dash">—</span>'; }
  h += `</section>`;
  if (MODE === 'view' && !BUYER) h += `<section class="sec share"><h2>${T('보고서 링크','Report links')} <small>${T('링크 안에 보고서 전체가 들어 있습니다','the link carries the whole report')}</small></h2>
   <label for="lkEn">${T('바이어용 영문 링크','Buyer link (English)')}</label><div class="lk"><input id="lkEn" readonly><button type="button" class="btn dark" data-copy="lkEn">${T('복사','Copy')}</button></div>
   <label for="lkKo">${T('한국어 링크','Korean link')}</label><div class="lk"><input id="lkKo" readonly><button type="button" class="btn dark" data-copy="lkKo">${T('복사','Copy')}</button></div>
-  <div class="sbtns"><button type="button" class="btn kk" data-act="kakao">${T('카카오톡으로 보내기 (점검자 → Noor)','Share on KakaoTalk (inspector → Noor)')}</button>
+  <div class="sbtns"><button type="button" class="btn kk" data-act="kakao">${T('카카오톡으로 보내기 (점검자 → AutoMatch)','Share on KakaoTalk (inspector → AutoMatch)')}</button>
   <a id="wa" class="btn wa" href="https://wa.me/" target="_blank" rel="noopener">${T('WhatsApp으로 바이어에게 보내기 (영문)','Send to buyer on WhatsApp (English)')}</a></div></section>`;
- h += `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span><span>${T('담당','Sales')}: <b>Noor</b> · WhatsApp <a href="https://wa.me/${WA}" target="_blank" rel="noopener">${WA_TXT}</a></span></footer>`;
+ h += `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span></footer>`;
  return h;
 }
 function bar() {
