@@ -376,8 +376,8 @@ function loginPage() {
 function listPage() {
  return band() + `<section class="sec"><h2>${T('점검 보고서','Inspection reports')} <small>${T('총','Total')} ${TOTAL}${T('건','')}</small></h2>
   <input id="q" type="search" placeholder="${T('차량번호 / 차량명 검색','Search plate or model')}" value="${esc(Q)}">
-  ${LIST.length ? `<table class="ptab list"><thead><tr><th>${T('제출일','Submitted')}</th><th>${T('차량번호','Plate')}</th><th>${T('차량명','Model')}</th><th>${T('바이어 전송','Sent to')}</th></tr></thead><tbody>${LIST.map(r => { const s = (r.sends||[]).sort((a,b)=>b.sent_at>a.sent_at?1:-1);
-   return `<tr data-open="${r.id}"><td>${esc(fdt(r.created_at))}</td><td><b>${esc(r.plate||'—')}</b></td><td>${esc(r.model||'')}</td><td>${s.length?`<span class="tag g">${esc(s[0].buyer_name||'')}${s.length>1?' +'+(s.length-1):''}</span>${s[0].manager?` <span class="u">${esc(s[0].manager)}</span>`:''}`:`<span class="tag n">${T('미전송','Not sent')}</span>`}</td></tr>`; }).join('')}</tbody></table>` : `<p class="mute">${BUSY?'…':T('보고서가 없습니다','No reports yet')}</p>`}</section>` + foot;
+  ${LIST.length ? `<table class="ptab list"><thead><tr><th>${T('제출일','Submitted')}</th><th>${T('차량번호','Plate')}</th><th>${T('차량명','Model')}</th><th>${T('바이어 전송','Sent to')}</th><th>${T('담당 매니저','Manager')}</th></tr></thead><tbody>${LIST.map(r => { const s = (r.sends||[]).sort((a,b)=>b.sent_at>a.sent_at?1:-1);
+   return `<tr data-open="${r.id}"><td>${esc(fdt(r.created_at))}</td><td><b>${esc(r.plate||'—')}</b></td><td>${esc(r.model||'')}</td><td>${s.length?`<span class="tag g">${esc(s[0].buyer_name||'')}${s.length>1?' +'+(s.length-1):''}</span>`:`<span class="tag n">${T('미전송','Not sent')}</span>`}</td><td>${s.length&&s[0].manager?`<b>${esc(s[0].manager)}</b>`:'<span class="dash">—</span>'}</td></tr>`; }).join('')}</tbody></table>` : `<p class="mute">${BUSY?'…':T('보고서가 없습니다','No reports yet')}</p>`}</section>` + foot;
 }
 function donePage() {
  return band() + `<section class="sec donep"><p class="big">✓ ${T('제출 완료','Submitted')}</p><p class="carline">${T('차량번호','Plate')}: <b>${esc(S.f.plate||'—')}</b> · ${T('차량명','Model')}: <b>${esc([S.f.model,S.f.year].filter(Boolean).join(' ')||'—')}</b></p>
