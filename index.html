@@ -84,6 +84,12 @@ td{padding:6px 0}
 .seg{display:inline-flex;border:1px solid #4d668c;border-radius:8px;overflow:hidden}.seg button{font:inherit;font-weight:700;background:none;color:#a9bfe0;border:0;min-width:48px;min-height:42px;cursor:pointer}
 .seg button[aria-pressed=true]{background:#fff;color:var(--deep)}
 .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:12px 22px;font-size:13px;color:var(--mute)}.foot a{color:var(--navy);font-weight:700}
+.who{margin-left:auto;font-size:13px;color:#a9bfe0}.who button{font:inherit;color:#fff;background:none;border:1px solid #4d668c;border-radius:6px;padding:2px 8px;cursor:pointer}
+.login form{display:grid;gap:12px;max-width:380px;margin:10px auto 20px}.login label{display:grid;gap:4px;font-weight:700}.err{color:#a51f1f;font-weight:700;margin:4px 0}
+.list tr{cursor:pointer}.list tbody tr:hover{background:var(--soft)}#q{margin-bottom:10px;max-width:420px}
+.sendf{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:8px;margin-bottom:12px}@media(max-width:700px){.sendf{grid-template-columns:1fr}}
+.donep{text-align:center;display:grid;gap:10px;justify-items:center;padding:30px 22px}.donep .big{font-size:26px;font-weight:900;color:var(--ok);margin:0}.donep input{max-width:560px;font-size:13px}.btn.ghost2{background:none;border:1px solid var(--line);color:var(--navy)}
+.modal{position:fixed;inset:0;background:rgba(0,10,30,.55);display:grid;place-items:center;z-index:20;padding:16px}.modal>div{background:#fff;color:var(--ink);border-radius:12px;padding:20px;max-width:380px;width:100%}
 .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#16202e;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;z-index:9}
 @media(max-width:860px){.two{grid-template-columns:1fr}.two>.sec+.sec{border-left:0}}
 .vw figcaption{font-size:12px}
@@ -97,6 +103,7 @@ td{padding:6px 0}
 </style></head><body>
 <main id="app" class="sheet"><div class="sec">불러오는 중… / Loading…</div></main>
 <nav id="bar" class="bar"></nav>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 <script>
 {
 /* ===== SETTINGS ===== */
@@ -105,7 +112,7 @@ const PUBLIC_URL = '';      // optional: full URL of this page once hosted, e.g.
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let L = 'ko', MODE = 'edit', BUYER = false, SEL = null, armed = false;
+let L = 'ko', MODE = 'view', BUYER = false, SEL = null, armed = false;
 let S = {f:{}, p:{}, std:1};
 const T = (ko, en) => L === 'en' ? en : ko;
 const tl = a => L === 'en' ? a[1] : a[0];
@@ -305,93 +312,185 @@ function outer() {
  const c = counts(), codes = [...new Set(c.need.flatMap(p => P(p.id).n))];
  return `<span>${T('수리필요 총','Needs repair:')} <b>${c.need.length}</b>${T('판',' panel(s)')}</span>${codes.map(k=>`<span class="tag y">${k} ${tl(NC[k])}</span>`).join('')}<span class="u">· ${tl(HC.X)} <b>${c.ex}</b> · ${tl(HC.W)} <b>${c.wl}</b> ${MODE==='edit'?T('(도면에서 자동 계산)','(auto from diagram)'):''}</span>`;
 }
+/* ===== Supabase (database + logins) ===== */
+const SB_URL = 'https://ragfxntqxmhosxwxwyjo.supabase.co';
+const SB_KEY = 'sb_publishable_OMpV9V_xrmQWXiCWwULFJQ_o_QfCT9K';
+const DOMAIN = '@automatchkorea.com';
+const ADMIN_EMAIL = 'admin' + DOMAIN;
+const sb = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY) : null;
+let PAGE = 'loading', ROLE = null, RID = null, META = null, SENDS = [], LIST = [], TOTAL = 0, Q = '', CONFIRM = false, BUSY = false, ERR = '', AFTER = '';
+const BASE = () => location.origin + location.pathname;
+const repLink = (lang, id) => BASE() + '#' + lang + '.' + id;
+const fdt = s => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('en-GB', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}); };
+const empty = () => ({f:{date:today()}, p:{}, std:1});
+
+function band() {
+ const who = ROLE && !(PAGE === 'report' && BUYER) ? `<span class="who noprint">${ROLE==='admin'?'AutoMatch':T('점검자','Inspector')} · <button type="button" data-act="logout">${T('로그아웃','Log out')}</button></span>` : '';
+ return `<header class="band"><div class="logo">${logo()}</div>${who}<h1>${T('차량 진단평가지','Vehicle Inspection Report')}<small>${T('Vehicle Inspection Report','차량 진단평가지')}${PAGE!=='list'&&S.f.date?' · '+esc(fdate(S.f.date)):''}</small></h1></header>`;
+}
+const foot = `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span></footer>`;
+
 function sheet() {
  const f = S.f, c = counts();
- let h = `<header class="band"><div class="logo">${logo()}</div><h1>${T('차량 진단평가지','Vehicle Inspection Report')}<small>${T('Vehicle Inspection Report','차량 진단평가지')}${f.date?' · '+esc(fdate(f.date)):''}</small></h1></header>
- <div class="note">※ ${T('W(판금)는 X(교환)와 동일한 사고이력으로 간주함','W (sheet metal) is treated as accident history, the same as X (exchanged)')}${MODE==='edit'?`<button type="button" data-act="sample" class="noprint">${T('예시 채우기','Fill sample')}</button>`:''}</div>`;
+ let h = band() + `<div class="note">※ ${T('W(판금)는 X(교환)와 동일한 사고이력으로 간주함','W (sheet metal) is treated as accident history, the same as X (exchanged)')}</div>`;
  if (MODE === 'view') h += `<div class="key"><div><small>${T('차량','Vehicle')}</small><b>${esc(f.model||'—')} ${esc(f.year||'')}</b></div><div><small>${T('주행거리','Mileage')}</small><b>${has(f.km)?esc(fnum(f.km))+' km':'—'}</b></div><div><small>${T('사고','Accident')}</small>${f.acc?tag(f.acc):'<b>—</b>'}</div><div><small>${T('외판 교환 / 판금','Exchanged / sheet metal')}</small><b>X ${c.ex} · W ${c.wl}</b></div><div><small>${T('주요골격','Main frame')}</small>${c.frame.length?`<span class="tag r">${T('손상','Damaged')}</span>`:`<span class="tag g">${T('이상없음','No damage')}</span>`}</div></div>`;
  h += `<section class="sec"><h2>${T('차량 정보','Vehicle')}</h2><div class="grid">${INFO.map(x => `<div class="cell"><b>${L==='en'?x.en:x.ko}</b><div>${x.t==='keys'?smallNums(KEYS,T('개','')):fld(x)}</div></div>`).join('')}</div></section>
  <section class="sec">${carSec()}</section><div class="two"><section class="sec">${checklist(INT,'내부상태','Interior',['불량시 체크','check if defective'])}</section><section class="sec">${checklist(EXT,'외부상태','Exterior',['불량시 체크','check if defective'])}</section></div>
  <section class="sec"><h2>${T('평가 요약','Evaluation summary')}</h2><table class="sum">${SUM.map(r => `<tr><th>${L==='en'?r.en:r.ko}</th><td>${r.auto?outer():r.frame?frameStat():r.tire?smallNums(TIRES,'%'):r.f.map(fld).join('')}</td></tr>`).join('')}</table></section>
  <section class="sec"><h2>${T('비고','Remarks')}</h2>`;
- if (MODE === 'edit') h += `<textarea data-i="rmk" placeholder="${T('점검자 비고 (한국어)','Inspector remarks (Korean)')}">${esc(f.rmk||'')}</textarea>
-  <div style="height:8px"></div><textarea data-i="rmkEn" placeholder="${T('영문 비고 — 바이어용 (AutoMatch 작성)','English remarks for the buyer (AutoMatch)')}">${esc(f.rmkEn||'')}</textarea>`;
+ if (MODE === 'edit') h += `<textarea data-i="rmk" placeholder="${T('점검자 비고 (한국어)','Inspector remarks (Korean)')}">${esc(f.rmk||'')}</textarea>` +
+  (ROLE === 'admin' ? `<div style="height:8px"></div><textarea data-i="rmkEn" placeholder="${T('영문 비고 — 바이어용','English remarks for the buyer')}">${esc(f.rmkEn||'')}</textarea>` : '');
  else { const t = L === 'en' ? (f.rmkEn || f.rmk) : f.rmk; h += t ? `<p class="rmk">${esc(t)}</p>${L==='en'&&!f.rmkEn?'<p class="mute">(Inspector\'s original note in Korean)</p>':''}` : '<span class="dash">—</span>'; }
  h += `</section>`;
- if (MODE === 'view' && !BUYER) h += `<section class="sec share"><h2>${T('보고서 링크','Report links')} <small>${T('링크 안에 보고서 전체가 들어 있습니다','the link carries the whole report')}</small></h2>
-  <label for="lkEn">${T('바이어용 영문 링크','Buyer link (English)')}</label><div class="lk"><input id="lkEn" readonly><button type="button" class="btn dark" data-copy="lkEn">${T('복사','Copy')}</button></div>
-  <label for="lkKo">${T('한국어 링크','Korean link')}</label><div class="lk"><input id="lkKo" readonly><button type="button" class="btn dark" data-copy="lkKo">${T('복사','Copy')}</button></div>
-  <div class="sbtns"><button type="button" class="btn kk" data-act="kakao">${T('카카오톡으로 보내기 (점검자 → AutoMatch)','Share on KakaoTalk (inspector → AutoMatch)')}</button>
-  <a id="wa" class="btn wa" href="https://wa.me/" target="_blank" rel="noopener">${T('WhatsApp으로 바이어에게 보내기 (영문)','Send to buyer on WhatsApp (English)')}</a></div></section>`;
- h += `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span></footer>`;
- return h;
+ if (PAGE === 'report' && MODE === 'view' && ROLE === 'admin') h += adminTools();
+ return h + foot;
+}
+function adminTools() {
+ return `<section class="sec share noprint"><h2>${T('바이어에게 보내기','Send to buyer')} <small>${T('영문 보고서 · 보낸 기록이 저장됩니다','English report · every send is recorded')}</small></h2>
+  <div class="sendf"><input id="bn" placeholder="${T('바이어 이름','Buyer name')}" autocomplete="off"><input id="bp" inputmode="tel" placeholder="${T('WhatsApp 번호 (국가번호 포함, 예: 359888123456)','WhatsApp number with country code, e.g. 359888123456')}" autocomplete="off">
+  <button type="button" class="btn wa" data-act="send">${T('WhatsApp으로 보내기','Send on WhatsApp')}</button></div>
+  <label for="lkEn">${T('바이어용 영문 링크','Buyer link (English)')}</label><div class="lk"><input id="lkEn" readonly value="${esc(repLink('en', RID))}"><button type="button" class="btn dark" data-copy="lkEn">${T('복사','Copy')}</button></div>
+  <h2 style="margin-top:12px">${T('보낸 기록','Send history')} <small>${SENDS.length}</small></h2>
+  ${SENDS.length ? `<table class="ptab"><tbody>${SENDS.map(s => `<tr><td>${esc(fdt(s.sent_at))}</td><td><b>${esc(s.buyer_name||'—')}</b></td><td>${s.buyer_phone?'+'+esc(s.buyer_phone):''}</td></tr>`).join('')}</tbody></table>` : `<p class="mute">${T('아직 보낸 기록이 없습니다','Not sent to any buyer yet')}</p>`}
+  ${META ? `<p class="mute">${T('제출','Submitted')}: ${esc(fdt(META.created_at))}</p>` : ''}</section>`;
+}
+function loginPage() {
+ return band() + `<section class="sec login"><h2>${T('로그인','Log in')}</h2>
+  <form id="lf"><label>ID<input id="lid" autocomplete="username" autocapitalize="off" placeholder="admin / inspector"></label>
+  <label>${T('비밀번호','Password')}<input id="lpw" type="password" autocomplete="current-password"></label>
+  ${ERR ? `<p class="err">${esc(ERR)}</p>` : ''}<button class="btn main" ${BUSY?'disabled':''}>${BUSY?'…':T('로그인','Log in')}</button></form></section>` + foot;
+}
+function listPage() {
+ return band() + `<section class="sec"><h2>${T('점검 보고서','Inspection reports')} <small>${T('총','Total')} ${TOTAL}${T('건','')}</small></h2>
+  <input id="q" type="search" placeholder="${T('차량번호 / 차량명 검색','Search plate or model')}" value="${esc(Q)}">
+  ${LIST.length ? `<table class="ptab list"><thead><tr><th>${T('제출일','Submitted')}</th><th>${T('차량번호','Plate')}</th><th>${T('차량명','Model')}</th><th>${T('바이어 전송','Sent to')}</th></tr></thead><tbody>${LIST.map(r => { const s = (r.sends||[]).sort((a,b)=>b.sent_at>a.sent_at?1:-1);
+   return `<tr data-open="${r.id}"><td>${esc(fdt(r.created_at))}</td><td><b>${esc(r.plate||'—')}</b></td><td>${esc(r.model||'')}</td><td>${s.length?`<span class="tag g">${esc(s[0].buyer_name||'')}${s.length>1?' +'+(s.length-1):''}</span>`:`<span class="tag n">${T('미전송','Not sent')}</span>`}</td></tr>`; }).join('')}</tbody></table>` : `<p class="mute">${BUSY?'…':T('보고서가 없습니다','No reports yet')}</p>`}</section>` + foot;
+}
+function donePage() {
+ return band() + `<section class="sec donep"><p class="big">✓ ${T('제출 완료','Submitted')}</p><p>${esc(S.f.plate||'')} ${esc(S.f.model||'')}</p>
+  <p class="mute">${T('제출된 보고서는 수정할 수 없습니다. 아래 버튼으로 AutoMatch에 링크를 보내세요.','Submitted reports cannot be changed. Send the link to AutoMatch below.')}</p>
+  <input id="lkKo" readonly value="${esc(repLink('ko', RID))}">
+  <div class="sbtns"><button type="button" class="btn kk" data-act="kakao">${T('카카오톡으로 보내기','Share on KakaoTalk')}</button><button type="button" class="btn dark" data-copy="lkKo">${T('링크 복사','Copy link')}</button></div>
+  <button type="button" class="btn ghost2" data-act="fresh">${T('새 점검 시작','Start new inspection')}</button></section>` + foot;
+}
+function modal() {
+ return CONFIRM ? `<div class="modal"><div><p><b>${T('보고서를 제출할까요?','Submit this report?')}</b></p><p>${T('제출 후에는 수정할 수 없습니다.','It cannot be changed after submitting.')}</p>
+  ${ERR ? `<p class="err">${esc(ERR)}</p>` : ''}<div class="sbtns"><button type="button" class="btn dark" data-act="nocf">${T('취소','Cancel')}</button><button type="button" class="btn main" data-act="submit" ${BUSY?'disabled':''}>${BUSY?'…':T('제출','Submit')}</button></div></div></div>` : '';
 }
 function bar() {
  const lang = `<span class="seg">${['ko','en'].map(l=>`<button type="button" data-lang="${l}" aria-pressed="${L===l}">${l==='ko'?'한':'EN'}</button>`).join('')}</span>`;
- if (MODE === 'edit') return `${lang}<button type="button" class="btn ghost" data-act="new">${armed?T('한 번 더 누르면 초기화','Tap again to clear'):T('새 점검','New')}</button><button type="button" class="btn main" data-act="done">${T('보고서 완료 →','Finish report →')}</button>`;
- return `${lang}${BUYER?'':`<button type="button" class="btn ghost" data-act="edit">${T('수정','Edit')}</button>`}<button type="button" class="btn main" data-act="print">${T('PDF 저장 / 인쇄','Save PDF / Print')}</button>`;
+ if (PAGE === 'login' || PAGE === 'loading') return lang;
+ if (PAGE === 'list') return `${lang}<button type="button" class="btn main" data-act="fresh">${T('+ 새 점검','+ New inspection')}</button>`;
+ if (PAGE === 'done') return lang;
+ if (PAGE === 'form') return `${lang}${ROLE==='admin'?`<button type="button" class="btn ghost" data-act="list">${T('목록','List')}</button>`:''}<button type="button" class="btn ghost" data-act="new">${armed?T('한 번 더 누르면 초기화','Tap again to clear'):T('초기화','Clear')}</button><button type="button" class="btn main" data-act="ask">${T('제출 →','Submit →')}</button>`;
+ if (MODE === 'edit') return `${lang}<button type="button" class="btn ghost" data-act="cancel">${T('취소','Cancel')}</button><button type="button" class="btn main" data-act="saveedit" ${BUSY?'disabled':''}>${T('저장','Save')}</button>`;
+ if (ROLE === 'admin') return `${lang}<button type="button" class="btn ghost" data-act="list">${T('목록','List')}</button><button type="button" class="btn ghost" data-act="edit">${T('수정','Edit')}</button><button type="button" class="btn main" data-act="print">PDF</button>`;
+ return (L === 'ko' && !ROLE ? `<button type="button" class="btn ghost" data-act="tologin">${T('관리자 로그인','Admin login')}</button>` : '') + `<button type="button" class="btn main" data-act="print">${T('PDF 저장','Download PDF')}</button>`;
 }
 function render() {
  document.documentElement.lang = L;
- $('#app').className = 'sheet ' + MODE;
- $('#app').innerHTML = sheet(); $('#bar').innerHTML = bar();
- if (MODE === 'view' && !BUYER) links();
+ const app = $('#app');
+ app.className = 'sheet ' + (PAGE === 'report' || PAGE === 'form' ? MODE : PAGE);
+ app.innerHTML = PAGE === 'loading' ? `<div class="sec">…</div>` : PAGE === 'login' ? loginPage() : PAGE === 'list' ? listPage() : PAGE === 'done' ? donePage() : PAGE === 'missing' ? band() + `<section class="sec"><p class="err">${T('보고서를 찾을 수 없습니다','Report not found')}</p></section>` + foot : sheet() + modal();
+ $('#bar').innerHTML = bar();
 }
-
-/* ---- link encoding: whole report inside the URL ---- */
-const b64 = u8 => { let s = ''; for (const c of u8) s += String.fromCharCode(c); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
-const unb64 = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
 function prune(s) {
  const f = {}; for (const [k,v] of Object.entries(s.f)) if (has(v)) f[k] = v;
  const p = {}; for (const [k,v] of Object.entries(s.p)) { const o = {}; if (v.t) o.t = v.t; if (has(v.h)) o.h = v.h; if (has(v.n)) o.n = v.n; if (Object.keys(o).length) p[k] = o; }
  return {f, p, std:s.std};
 }
-async function enc(o) {
- const s = JSON.stringify(o);
- try { const st = new Blob([s]).stream().pipeThrough(new CompressionStream('deflate-raw')); return 'z' + b64(new Uint8Array(await new Response(st).arrayBuffer())); }
- catch (e) { return 'j' + b64(new TextEncoder().encode(s)); }
-}
-async function dec(p) {
- const u = unb64(p.slice(1));
- if (p[0] === 'z') { const st = new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return JSON.parse(await new Response(st).text()); }
- return JSON.parse(new TextDecoder().decode(u));
-}
-async function links() {
- const p = await enc(prune(S)), base = PUBLIC_URL || location.href.split('#')[0];
- const en = base + '#enb.' + p, ko = base + '#ko.' + p;
- if (!$('#lkEn')) return;
- $('#lkEn').value = en; $('#lkKo').value = ko;
- $('#wa').href = 'https://wa.me/?text=' + encodeURIComponent(`AutoMatch Korea — Vehicle Inspection Report\n${S.f.model||''} ${S.f.year||''}\n${en}`);
-}
-function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1600); }
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
 function copy(id, msg) {
  const i = $('#' + id); if (!i || !i.value) return;
  const ok = () => toast(msg || T('복사됨','Copied'));
- try { navigator.clipboard.writeText(i.value).then(ok, () => { i.select(); toast(T('선택됨 — 길게 눌러 복사','Selected — copy manually')); }); }
- catch (e) { i.select(); }
+ try { navigator.clipboard.writeText(i.value).then(ok, () => { i.select(); toast(T('선택됨 — 길게 눌러 복사','Selected — copy manually')); }); } catch (e) { i.select(); }
 }
-const save = () => { try { localStorage.setItem('am_insp', JSON.stringify(S)); } catch (e) {} };
-const SAMPLE = {std:1,f:{plate:'12가 3456',model:'쏘렌토 MQ4',year:'2021',km:'36270',vin:'KNARH81BBMS000000',fuel:'diesel',drv:'w4',tm:'at',ks:'2',date:today(),insp:'김점검',
- acc:'noacc',st:'good',lk:'good',ts:'good',mf:'good',ns:'good',bb:'good',md:'good',sa:'good',rm:'good',wh:'1',tfl:'70',tfr:'70',trl:'70',trr:'70',garn:['scratch'],
- rmk:'외판 4판 / 1판 복원필요 (가니쉬 교체)\n휠기스 1개',rmkEn:'4 panels with light marks, 1 needs touch-up (garnish replacement).\n1 wheel scuff.'},
- p:{lf:{t:'124'},lfd:{t:'122',n:['A']},lrd:{t:'134'},lq:{t:'122',n:['A']},hood:{t:'114'},roof:{t:'120'},trunk:{t:'121'},rf:{t:'125',n:['A']},rfd:{t:'119'},rrd:{t:'139',n:['A']},rq:{t:'118'},ls:{t:'117'},rs:{t:'120'}}};
-function act(a) {
- if (a === 'done') { MODE = 'view'; BUYER = false; SEL = null; render(); scrollTo(0,0); }
- else if (a === 'edit') { MODE = 'edit'; BUYER = false; render(); }
+const save = () => { if (PAGE !== 'form') return; try { localStorage.setItem('am_insp', JSON.stringify(S)); } catch (e) {} };
+const loadDraft = () => { try { const d = JSON.parse(localStorage.getItem('am_insp') || 'null'); S = d ? Object.assign(empty(), d) : empty(); } catch (e) { S = empty(); } if (!S.f.date) S.f.date = today(); };
+
+/* ---- data ---- */
+async function loadList() {
+ BUSY = true; render();
+ let q = sb.from('reports').select('id,created_at,plate,model,sends(buyer_name,sent_at)', {count:'exact'}).order('created_at', {ascending:false}).limit(300);
+ const s = Q.trim().replace(/[%,()]/g, ''); if (s) q = q.or(`plate.ilike.%${s}%,model.ilike.%${s}%`);
+ const {data, count, error} = await q; BUSY = false;
+ if (error) toast(error.message); LIST = data || []; if (!s) TOTAL = count || 0; else TOTAL = TOTAL || count || 0;
+ render(); const qi = $('#q'); if (qi && s) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); }
+}
+async function loadReport(id) {
+ const {data, error} = await sb.rpc('get_report', {rid: id});
+ if (error || !data) { PAGE = 'missing'; render(); return; }
+ S = Object.assign(empty(), data.data); META = {created_at: data.created_at}; RID = id; SENDS = [];
+ PAGE = 'report'; MODE = 'view'; BUYER = ROLE !== 'admin'; render();
+ if (ROLE === 'admin') { const r = await sb.from('sends').select('buyer_name,buyer_phone,sent_at').eq('report_id', id).order('sent_at', {ascending:false}); SENDS = r.data || []; render(); }
+}
+async function route() {
+ const m = location.hash.match(/^#(ko|en)\.([0-9a-f-]{36})$/);
+ const {data} = await sb.auth.getSession(); const em = data.session && data.session.user.email;
+ ROLE = em ? (em === ADMIN_EMAIL ? 'admin' : 'inspector') : null;
+ if (m) { L = m[1]; return loadReport(m[2]); }
+ if (!ROLE) { PAGE = 'login'; return render(); }
+ if (ROLE === 'admin') { L = L || 'ko'; PAGE = 'list'; return loadList(); }
+ PAGE = 'form'; MODE = 'edit'; loadDraft(); render();
+}
+const go = h => { if (location.hash === h || (!h && !location.hash)) route(); else location.hash = h; };
+
+async function act(a) {
+ if (a === 'print') { try { print(); } catch (e) {} }
+ else if (a === 'logout') { await sb.auth.signOut(); ROLE = null; go(''); }
+ else if (a === 'tologin') { AFTER = location.hash; PAGE = 'login'; render(); }
+ else if (a === 'list') { SEL = null; go(''); }
+ else if (a === 'fresh') { S = empty(); SEL = null; RID = null; PAGE = 'form'; MODE = 'edit'; try { localStorage.removeItem('am_insp'); } catch (e) {} if (location.hash) history.replaceState(null, '', BASE()); render(); scrollTo(0,0); }
+ else if (a === 'new') { if (!armed) { armed = true; $('#bar').innerHTML = bar(); setTimeout(() => { armed = false; if (PAGE==='form') $('#bar').innerHTML = bar(); }, 4000); return; } armed = false; act('fresh'); }
+ else if (a === 'ask') { if (!S.f.plate && !S.f.model) { toast(T('차량번호 또는 차량명을 입력하세요','Enter the plate or model first')); scrollTo(0,0); return; } ERR = ''; CONFIRM = true; render(); }
+ else if (a === 'nocf') { CONFIRM = false; render(); }
+ else if (a === 'submit') {
+  BUSY = true; ERR = ''; render(); const id = crypto.randomUUID(), d = prune(S);
+  const {error} = await sb.from('reports').insert({id, data:d, plate:S.f.plate||null, model:S.f.model||null});
+  BUSY = false; if (error) { ERR = error.message; render(); return; }
+  CONFIRM = false; RID = id; try { localStorage.removeItem('am_insp'); } catch (e) {}
+  if (ROLE === 'admin') { go('#ko.' + id); return; }
+  PAGE = 'done'; SEL = null; render(); scrollTo(0,0);
+ }
  else if (a === 'kakao') { const url = $('#lkKo') && $('#lkKo').value; if (!url) return; const text = `[AutoMatch 진단평가지] ${S.f.plate||''} ${S.f.model||''}`;
   if (navigator.share) navigator.share({title:text, text, url}).catch(() => {}); else copy('lkKo', T('링크 복사됨 — 카카오톡에 붙여넣기','Link copied — paste it in KakaoTalk')); }
- else if (a === 'print') { try { print(); } catch (e) {} }
- else if (a === 'sample') { S = JSON.parse(JSON.stringify(SAMPLE)); SEL = null; save(); render(); }
- else if (a === 'new') { if (!armed) { armed = true; $('#bar').innerHTML = bar(); setTimeout(() => { armed = false; if (MODE==='edit') $('#bar').innerHTML = bar(); }, 4000); return; }
-  armed = false; S = {f:{date:today()}, p:{}, std:1}; SEL = null; save(); render(); scrollTo(0,0); }
+ else if (a === 'edit') { MODE = 'edit'; render(); }
+ else if (a === 'cancel') { loadReport(RID); }
+ else if (a === 'saveedit') {
+  BUSY = true; render();
+  const {error} = await sb.from('reports').update({data:prune(S), plate:S.f.plate||null, model:S.f.model||null, updated_at:new Date().toISOString()}).eq('id', RID);
+  BUSY = false; if (error) { toast(error.message); render(); return; } SEL = null; toast(T('저장됨','Saved')); loadReport(RID);
+ }
+ else if (a === 'send') {
+  const name = $('#bn').value.trim(), phone = $('#bp').value.replace(/\D/g, '');
+  if (!name) { toast(T('바이어 이름을 입력하세요','Enter the buyer name')); $('#bn').focus(); return; }
+  if (phone && phone.length < 8) { toast(T('국가번호 포함 전체 번호를 입력하세요','Enter the full number with country code')); return; }
+  const text = `AutoMatch Korea — Vehicle Inspection Report\n${S.f.model||''} ${S.f.year||''}\n${repLink('en', RID)}`;
+  window.open(`https://wa.me/${phone}?text=` + encodeURIComponent(text), '_blank');
+  const {error} = await sb.from('sends').insert({report_id:RID, buyer_name:name, buyer_phone:phone||null});
+  if (error) { toast(error.message); return; }
+  SENDS.unshift({buyer_name:name, buyer_phone:phone, sent_at:new Date().toISOString()}); render(); toast(T('보낸 기록 저장됨','Send recorded'));
+ }
 }
+document.addEventListener('submit', async e => {
+ if (e.target.id !== 'lf') return; e.preventDefault();
+ let id = $('#lid').value.trim().toLowerCase(); const pw = $('#lpw').value;
+ if (!id || !pw) return; if (!id.includes('@')) id += DOMAIN;
+ BUSY = true; ERR = ''; render(); $('#lid').value = id.replace(DOMAIN, '');
+ const {error} = await sb.auth.signInWithPassword({email:id, password:pw});
+ BUSY = false;
+ if (error) { ERR = T('ID 또는 비밀번호가 맞지 않습니다','Wrong ID or password'); render(); $('#lid').value = id.replace(DOMAIN, ''); return; }
+ const h = AFTER; AFTER = ''; go(h);
+});
+let qt; document.addEventListener('input', e => { if (e.target.id === 'q') { Q = e.target.value; clearTimeout(qt); qt = setTimeout(loadList, 350); } });
 document.addEventListener('click', e => {
+ const tr = e.target.closest('[data-open]'); if (tr) { go('#ko.' + tr.dataset.open); return; }
  const b = e.target.closest('[data-f],[data-sel],[data-pc],[data-std],[data-act],[data-lang],[data-copy],[data-step]');
  if (!b) return; const d = b.dataset;
  if (d.lang) { L = d.lang; render(); return; }
  if (d.copy) { copy(d.copy); return; }
  if (d.act) { act(d.act); return; }
- if (MODE !== 'edit') return;
+ if (MODE !== 'edit' || !(PAGE === 'form' || PAGE === 'report')) return;
  if (d.step) { const n = ORDER.length, i = ORDER.indexOf(SEL); SEL = ORDER[SEL ? (i + (+d.step) + n) % n : 0]; keep(); focusEd(); return; }
  if (d.sel) { SEL = d.sel; keep(); focusEd(); return; }
  if (d.f) { const id = d.f, v = d.v; if (d.m) { const a = S.f[id] || []; S.f[id] = a.includes(v) ? a.filter(x => x !== v) : [...a, v]; } else S.f[id] = S.f[id] === v ? '' : v; }
@@ -404,20 +503,12 @@ function focusEd() { const e = $('#ped'); if (!e) return; const r = e.getBoundin
 document.addEventListener('change', e => { const t = e.target; if (t.dataset.jump !== undefined && MODE === 'edit') { SEL = t.value; keep(); focusEd(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.pt) { e.preventDefault(); const n = ORDER.length; SEL = ORDER[(ORDER.indexOf(SEL) + 1) % n]; keep(); focusEd(); } });
 document.addEventListener('input', e => {
- const t = e.target; if (MODE !== 'edit') return;
+ const t = e.target; if (MODE !== 'edit' || !(PAGE === 'form' || PAGE === 'report')) return;
  if (t.dataset.i) { S.f[t.dataset.i] = t.value; save(); }
  else if (t.dataset.pt && SEL) { P(SEL).t = t.value.replace(/\D/g,''); save(); $('#views').innerHTML = views(); const c = $('#pcls'); if (c) c.innerHTML = clsTag(P(SEL).t); }
 });
-(async () => {
- const m = location.hash.match(/^#(ko|en)(b?)\.(.+)$/);
- if (m) {
-  try { S = Object.assign({f:{}, p:{}, std:1}, await dec(m[3])); L = m[1]; BUYER = !!m[2]; MODE = 'view'; render(); return; }
-  catch (e) { toast('Link could not be read'); }
- }
- try { const d = JSON.parse(localStorage.getItem('am_insp') || 'null'); if (d) S = Object.assign({f:{}, p:{}, std:1}, d); } catch (e) {}
- if (!S.f.date) S.f.date = today();
- render();
-})();
+addEventListener('hashchange', () => { SEL = null; route(); });
+if (!sb) { $('#app').innerHTML = '<div class="sec">Could not load. Check your internet and refresh.</div>'; } else route();
 }
 </script>
 </body></html>
