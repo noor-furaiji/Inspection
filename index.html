@@ -547,7 +547,7 @@ async function act(a) {
   const file = new File([PDFB], pdfName(), {type:'application/pdf'});
   let sent = false;
   if (navigator.canShare && navigator.canShare({files:[file]})) {
-   try { await navigator.share({files:[file], title:'AutoMatch Korea — Vehicle Inspection Report'}); sent = true; } catch (e) { if (e.name !== 'AbortError') { savePdfBlob(PDFB); sent = true; } }
+   try { await navigator.share({files:[file]}); sent = true; } catch (e) { if (e.name !== 'AbortError') { savePdfBlob(PDFB); sent = true; } }
   } else { savePdfBlob(PDFB); sent = true; toast(T('PDF 다운로드됨 — WhatsApp에 첨부하세요','PDF downloaded — attach it in WhatsApp')); }
   if (sent) { await logSend(name, ($('#mg') && $('#mg').value.trim()) || MG()); PDFB = null; BN = ''; keep(); }
  }
