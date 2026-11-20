@@ -102,6 +102,7 @@ td{padding:6px 0}
 .pdf{max-width:none;margin:0;box-shadow:none;border-radius:0}.pdf .two{grid-template-columns:1fr 1fr!important}.pdf .two>.sec+.sec{border-left:1px solid var(--line)!important}
 .pdf tr{display:table-row!important}.pdf th{width:40%!important;padding:5px 8px 5px 0!important}.pdf .sum th{width:30%!important;background:var(--soft)!important;padding-left:8px!important}
 .pdf .sec{padding:8px 14px}.pdf .views{gap:8px;max-width:600px}.pdf .key{padding:8px 14px}.pdf .band{padding:10px 14px}.pdf .note{padding:5px 14px}.pdf .foot{padding:8px 14px}.pdf .band h1{margin-left:auto;text-align:end}.pdf .sheet{margin:0}
+.ver{color:#b0bccb;font-size:11px}.pdf .ver{display:none}
 .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#16202e;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;z-index:9}
 @media(max-width:860px){.two{grid-template-columns:1fr}.two>.sec+.sec{border-left:0}}
 .vw figcaption{font-size:12px}
@@ -324,6 +325,10 @@ function outer() {
  const c = counts(), codes = [...new Set(c.need.flatMap(p => P(p.id).n))];
  return `<span>${T('수리필요 총','Needs repair:')} <b>${c.need.length}</b>${T('판',' panel(s)')}</span>${codes.map(k=>`<span class="tag y">${k} ${tl(NC[k])}</span>`).join('')}<span class="u">· ${tl(HC.X)} <b>${c.ex}</b> · ${tl(HC.W)} <b>${c.wl}</b> ${MODE==='edit'?T('(도면에서 자동 계산)','(auto from diagram)'):''}</span>`;
 }
+/* ===== version: change on every release; old copies reload themselves ===== */
+const APP_VERSION = '2026.11.20-3';
+(async () => { try { const r = await fetch(location.pathname + '?v=' + Date.now(), {cache:'no-store'}); const t = await r.text(); const m = t.match(/APP_VERSION = '([^']+)'/);
+ if (m && m[1] !== APP_VERSION && sessionStorage.getItem('am_rl') !== m[1]) { sessionStorage.setItem('am_rl', m[1]); location.reload(); } } catch (e) {} })();
 /* ===== Supabase (database + logins) ===== */
 const SB_URL = 'https://ragfxntqxmhosxwxwyjo.supabase.co';
 const SB_KEY = 'sb_publishable_OMpV9V_xrmQWXiCWwULFJQ_o_QfCT9K';
@@ -342,7 +347,7 @@ function band() {
  const who = ROLE && !PDFMODE && !(PAGE === 'report' && BUYER) ? `<span class="who noprint">${ROLE==='admin'?'AutoMatch':T('점검자','Inspector')} · <button type="button" data-act="logout">${T('로그아웃','Log out')}</button></span>` : '';
  return `<header class="band"><div class="logo">${logo()}</div>${who}<h1>${T('차량 진단평가지','Vehicle Inspection Report')}<small>${T('Vehicle Inspection Report','차량 진단평가지')}${PAGE!=='list'&&S.f.date?' · '+esc(fdate(S.f.date)):''}</small></h1></header>`;
 }
-const foot = `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span></footer>`;
+const foot = `<footer class="foot"><span>AutoMatch Korea · automatchkorea.com</span><span class="ver noprint">v${APP_VERSION}</span></footer>`;
 
 function parts() {
  const f = S.f, c = counts();
