@@ -464,7 +464,7 @@ const go = h => { if (location.hash === h || (!h && !location.hash)) route(); el
 /* ---- PDF (English buyer version): exactly 2 fixed A4 pages, same on every device ---- */
 const libs = {};
 const loadJs = src => libs[src] || (libs[src] = new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = () => { delete libs[src]; no(new Error('PDF library failed to load — check internet')); }; document.head.appendChild(sc); }));
-const pdfName = () => { const a = ((S.f.model || '') + ' ' + (S.f.year || '')).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); return 'AutoMatch_Inspection_' + (a || (S.f.date || today()).replace(/-/g, '')) + '_' + RID.slice(0, 6) + '.pdf'; };
+const pdfName = () => { const clean = v => String(v || '').trim().replace(/[\\/:*?"<>|#%&{}$!'@+`=]+/g, '').replace(/\s+/g, '_'); const n = [clean(S.f.model), clean(S.f.year), has(S.f.km) ? String(S.f.km).replace(/\D/g, '') + 'km' : ''].filter(Boolean).join('_'); return (n || 'Inspection_' + (S.f.date || today()).replace(/-/g, '')) + '.pdf'; };
 async function rasterSvgs(root) {
  await Promise.all([...root.querySelectorAll('svg')].map(sv => new Promise(res => {
   const r = sv.getBoundingClientRect(), w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height)), k = 3;
